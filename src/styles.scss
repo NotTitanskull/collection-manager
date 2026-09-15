@@ -1,5 +1,63 @@
 // Bootstrap configuration
-
+$primary: #2856c5;
+$body-bg: #f5f7fb;
+$body-color: #1b293e;
+$secondary: #5b6b81;
+$body-secondary-color: #647186;
+$border-color: #dfe5ef;
+$font-family-sans-serif:
+  system-ui,
+  -apple-system,
+  'Segoe UI',
+  sans-serif;
+$border-radius: 0.625rem;
+$border-radius-lg: 1rem;
+$input-bg: #fff;
+$input-padding-y: 0.65rem;
+$input-padding-x: 0.85rem;
+$btn-padding-y: 0.65rem;
+$btn-padding-x: 1rem;
+$btn-font-weight: 600;
+$modal-content-border-width: 0;
+$modal-content-border-radius: 1rem;
+$modal-header-padding: 1.25rem;
+$modal-inner-padding: 1.25rem;
+$modal-backdrop-opacity: 0.45;
+$table-bg: #fff;
+$table-hover-bg: #f3f7ff;
 @import 'bootstrap/scss/bootstrap';
 
-// Global styles
+// Shared interface styles
+body {
+  -webkit-font-smoothing: antialiased;
+}
+a {
+  text-underline-offset: 0.2em;
+}
+.nav-link,
+.navbar-brand {
+  text-decoration: none;
+}
+h1,
+h2,
+h3 {
+  letter-spacing: -0.025em;
+}
+.btn:focus-visible,
+a:focus-visible {
+  outline: 3px solid #85a8ff;
+  outline-offset: 3px;
+}
+.form-label {
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+.form-text {
+  font-size: 0.76rem;
+}
+.modal-title {
+  font-weight: 700;
+}
+.modal-footer {
+  background: #f8faff;
+}

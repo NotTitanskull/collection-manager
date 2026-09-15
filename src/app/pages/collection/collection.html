@@ -1,0 +1,563 @@
+<section aria-labelledby="collection-title">
+  <div class="collection-heading">
+    <div>
+      <p class="eyebrow d-none d-md-block">YOUR PERSONAL CARD LIBRARY</p>
+      <h1 id="collection-title">{{ title }}</h1>
+      <p class="text-secondary d-none d-md-block mb-0">{{ description }}</p>
+    </div>
+
+    <div class="heading-actions">
+      <span class="text-secondary count">{{ cards.length }} cards</span>
+      <button
+        class="btn btn-primary add-card-button"
+        aria-label="Add card"
+        data-bs-toggle="modal"
+        data-bs-target="#card-editor-modal"
+        (click)="begin()"
+      >
+        <span class="add-card-icon" aria-hidden="true">+</span>
+        <span class="d-none d-md-inline"> Add Card</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <label class="search-field">
+      <span class="visually-hidden">Search your collection</span>
+      <input class="form-control" type="search" placeholder="Search cards, sets, or locations…" />
+    </label>
+    <button
+      class="btn btn-outline-secondary filter-button"
+      data-bs-toggle="modal"
+      data-bs-target="#filter-modal"
+      (click)="resetFilterForm()"
+    >
+      Filter
+    </button>
+    <label class="sort-field">
+      <span class="visually-hidden">Sort cards</span>
+      <select class="form-select">
+        <option value="name">Name: A–Z</option>
+        <option value="name-desc">Name: Z–A</option>
+        <option value="recent">Recently added</option>
+        <option value="quantity">Most copies</option>
+        <option value="condition">Best condition</option>
+      </select>
+    </label>
+  </div>
+  <div class="collection-surface">
+    @if (cards.length) {
+      <div class="d-none d-xl-block">
+        <table class="table collection-table align-middle mb-0">
+          <caption class="visually-hidden">
+            {{
+              title
+            }}:
+            {{
+              cards.length
+            }}
+            entries
+          </caption>
+          <colgroup>
+            <col style="width: 30%" />
+            <col style="width: 22%" />
+            <col style="width: 14%" />
+            <col style="width: 7%" />
+            <col style="width: 17%" />
+            <col style="width: 10%" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th scope="col">Card</th>
+              <th scope="col">Printing</th>
+              <th scope="col">Condition</th>
+              <th scope="col">Qty.</th>
+              <th scope="col">Location</th>
+              <th scope="col" class="text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (card of cards; track card.id) {
+              <tr>
+                <td>
+                  <div class="card-identity">
+                    <div class="thumbnail">
+                      @if (!failedImages.has(card.printing.id)) {
+                        <img
+                          [src]="card.printing.imageUrl"
+                          alt=""
+                          (error)="imageFailed(card.printing.id)"
+                        />
+                      } @else {
+                        <span aria-label="Image unavailable">MTG</span>
+                      }
+                    </div>
+                    <div class="min-width-0">
+                      <button
+                        class="card-name"
+                        data-bs-toggle="modal"
+                        data-bs-target="#card-editor-modal"
+                        (click)="begin(card)"
+                      >
+                        {{ card.printing.name }}</button
+                      ><small class="text-secondary d-block">{{ card.printing.type }}</small>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  {{ card.printing.setName }}
+                  <small class="text-secondary d-block">
+                    {{ card.printing.setCode }} #{{ card.printing.collectorNumber }} ·
+                    {{ card.finish }}
+                </small>
+                </td>
+                <td>
+                  <span class="condition" [class]="'condition ' + conditionClass(card.condition)">{{
+                    card.condition
+                  }}</span>
+                </td>
+                <td>{{ card.quantity }}</td>
+                <td>
+                  {{ card.location }}
+                  @if (card.forTrade) {
+                    <small class="trade-label d-block">For trade</small>
+                  }
+                </td>
+                <td>
+                  <div class="row-actions">
+                    <button
+                      class="icon-button heart"
+                      [class.active]="card.favorite"
+                      [attr.aria-label]="'Favorite ' + card.printing.name"
+                      [attr.aria-pressed]="card.favorite"
+                      data-bs-toggle="button"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        width="21"
+                        height="21"
+                        aria-hidden="true"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                      >
+                        <path
+                          d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"
+                        />
+                      </svg></button
+                    ><button
+                      class="icon-button"
+                      [attr.aria-label]="'Manage ' + card.printing.name"
+                      data-bs-toggle="modal"
+                      data-bs-target="#card-editor-modal"
+                      (click)="begin(card)"
+                    >
+                      ›
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <ul class="mobile-list d-xl-none">
+        @for (card of cards; track card.id) {
+          <li>
+            <div class="thumbnail">
+              @if (!failedImages.has(card.printing.id)) {
+                <img
+                  [src]="card.printing.imageUrl"
+                  alt=""
+                  (error)="imageFailed(card.printing.id)"
+                />
+              } @else {
+                <span aria-label="Image unavailable">MTG</span>
+              }
+            </div>
+            <div class="card-details">
+              <button
+                class="card-name"
+                data-bs-toggle="modal"
+                data-bs-target="#card-editor-modal"
+                (click)="begin(card)"
+              >
+                {{ card.printing.name }}
+              </button>
+              <p class="printing-label">
+                {{ card.printing.setCode }} #{{ card.printing.collectorNumber }} · {{ card.finish }}
+              </p>
+              <div class="condition-line">
+                <span [class]="'condition ' + conditionClass(card.condition)">{{
+                  card.condition
+                }}</span
+                ><span>×{{ card.quantity }}</span>
+              </div>
+              <p class="location-label">
+                {{ card.location }}
+                @if (card.forTrade) {
+                  <span class="trade-label">· For trade</span>
+                }
+              </p>
+            </div>
+            <div class="row-actions">
+              <button
+                class="icon-button heart"
+                [class.active]="card.favorite"
+                [attr.aria-label]="'Favorite ' + card.printing.name"
+                [attr.aria-pressed]="card.favorite"
+                data-bs-toggle="button"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  width="21"
+                  height="21"
+                  aria-hidden="true"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                >
+                  <path
+                    d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"
+                  />
+                </svg></button
+              ><button
+                class="icon-button"
+                [attr.aria-label]="'Manage ' + card.printing.name"
+                data-bs-toggle="modal"
+                data-bs-target="#card-editor-modal"
+                (click)="begin(card)"
+              >
+                ›
+              </button>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</section>
+
+<div
+  class="modal fade"
+  id="card-editor-modal"
+  tabindex="-1"
+  aria-labelledby="editor-title"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title fs-5" id="editor-title">
+          {{ deleting ? 'Remove card?' : draft.id ? 'Manage Card' : 'Add Card' }}
+        </h2>
+        <button class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      @if (deleting) {
+        <div class="modal-body">
+          <p>
+            Remove <strong>{{ selectedName }}</strong> and its {{ draft.quantity }}
+            {{ draft.quantity === 1 ? 'copy' : 'copies' }} from your collection?
+          </p>
+          <p class="text-secondary mb-0">
+            Your other entries for this card will stay in your collection.
+          </p>
+        </div>
+        <div class="modal-footer justify-content-between">
+          <button class="btn btn-outline-secondary" (click)="deleting = false">Keep Card</button
+          ><button class="btn btn-danger" data-bs-dismiss="modal">Remove Card</button>
+        </div>
+      } @else {
+        <form (submit)="$event.preventDefault()" class="editor-form">
+          <div class="modal-body">
+            @if (draft.id && printing) {
+              <div class="editor-preview">
+                <div class="preview-image">
+                  @if (!failedImages.has(printing.id)) {
+                    <img
+                      [src]="printing.imageUrl.replace('/small/', '/normal/')"
+                      [alt]="printing.name"
+                      (error)="imageFailed(printing.id)"
+                    />
+                  }
+                </div>
+                <div>
+                  <h3 class="fs-5">{{ printing.name }}</h3>
+                  <p class="text-secondary mb-0">{{ printing.type }}</p>
+                </div>
+              </div>
+            }
+            @if (!draft.id) {
+              <div class="mb-3">
+                <label for="card-search" class="form-label">Card name</label
+                ><input
+                  id="card-search"
+                  class="form-control"
+                  type="search"
+                  name="cardSearch"
+                  autocomplete="off"
+                  [ngModel]="cardSearch"
+                  (ngModelChange)="searchCard($event)"
+                  aria-describedby="catalog-help"
+                />
+                <div class="form-text" id="catalog-help">
+                  Sample catalog: Dogmeat, Lightning Bolt, and Sol Ring.
+                </div>
+                @if (matches.length) {
+                  <div class="list-group mt-2" aria-label="Matching cards">
+                    @for (match of matches; track match.id) {
+                      <button
+                        type="button"
+                        class="list-group-item list-group-item-action"
+                        (click)="selectCard(match.name)"
+                      >
+                        {{ match.name
+                        }}<small class="d-block text-secondary">{{ match.type }}</small>
+                      </button>
+                    }
+                  </div>
+                } @else if (cardSearch.trim() && !selectedName) {
+                  <p class="form-text">No sample cards match that name.</p>
+                }
+              </div>
+            }
+            <div class="mb-3">
+              <label class="form-label" for="printing">Printing</label
+              ><select
+                id="printing"
+                class="form-select"
+                name="printing"
+                [disabled]="!selectedName"
+                [ngModel]="printingId"
+                (ngModelChange)="selectPrinting($event)"
+              >
+                <option value="">
+                  {{ selectedName ? 'Select a printing' : 'Choose a card first' }}
+                </option>
+                @for (p of printings; track p.id) {
+                  <option [value]="p.id">
+                    {{ p.setName }} — {{ p.setCode }} #{{ p.collectorNumber }}
+                  </option>
+                }
+              </select>
+            </div>
+            <div class="form-check mb-3">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="foil"
+                name="foil"
+                [disabled]="!printing || printing.finishes.length === 1"
+                [ngModel]="draft.finish === 'Foil'"
+                (ngModelChange)="draft.finish = $event ? 'Foil' : 'Nonfoil'"
+              /><label class="form-check-label" for="foil">Foil</label>
+              <div class="form-text">
+                {{
+                  !printing
+                    ? 'Select a printing to see available finishes.'
+                    : printing.finishes.length === 1
+                      ? 'This printing is available only in ' +
+                        printing.finishes[0].toLowerCase() +
+                        '.'
+                      : 'This printing supports foil and nonfoil.'
+                }}
+              </div>
+            </div>
+            <div class="row g-3 mb-3">
+              <div class="col-8">
+                <label for="condition" class="form-label">Condition</label
+                ><select
+                  id="condition"
+                  name="condition"
+                  class="form-select"
+                  [(ngModel)]="draft.condition"
+                >
+                  @for (condition of conditions; track condition) {
+                    <option>{{ condition }}</option>
+                  }
+                </select>
+              </div>
+              <div class="col-4">
+                <label for="quantity" class="form-label">Quantity</label
+                ><input
+                  id="quantity"
+                  class="form-control"
+                  name="quantity"
+                  type="number"
+                  min="1"
+                  max="9999"
+                  step="1"
+                  required
+                  [(ngModel)]="draft.quantity"
+                />
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="location" class="form-label">Location / category</label
+              ><input
+                id="location"
+                name="location"
+                class="form-control"
+                maxlength="100"
+                placeholder="e.g. Trade Binder"
+                list="locations"
+                [(ngModel)]="draft.location"
+              /><datalist id="locations">
+                @for (location of locations; track location) {
+                  <option [value]="location"></option>
+                }
+              </datalist>
+              <div class="form-text">
+                Copies with different conditions or locations can be added as separate entries.
+              </div>
+            </div>
+            <div class="d-flex gap-4 flex-wrap">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  id="favorite"
+                  type="checkbox"
+                  name="favorite"
+                  [(ngModel)]="draft.favorite"
+                />
+                <label for="favorite" class="form-check-label">Favorite</label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  id="trade"
+                  type="checkbox"
+                  name="trade"
+                  [(ngModel)]="draft.forTrade"
+                /><label for="trade" class="form-check-label">Available for trade</label>
+              </div>
+            </div>
+            @if (draft.id) {
+              <button
+                type="button"
+                class="btn btn-link text-danger p-0 mt-4"
+                (click)="deleting = true"
+              >
+                Remove from collection
+              </button>
+            }
+          </div>
+          <div class="modal-footer justify-content-between">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+              Cancel</button
+            ><button type="submit" class="btn btn-primary" data-bs-dismiss="modal">
+              {{ draft.id ? 'Save Changes' : 'Add Card' }}
+            </button>
+          </div>
+        </form>
+      }
+    </div>
+  </div>
+</div>
+
+<div
+  class="modal fade"
+  id="filter-modal"
+  tabindex="-1"
+  aria-labelledby="filter-title"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <form class="modal-content" (submit)="$event.preventDefault()">
+      <div class="modal-header">
+        <h2 class="modal-title fs-5" id="filter-title">Filter Cards</h2>
+        <button type="button" class="btn-close" aria-label="Close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-sm-6">
+            <label for="filter-condition" class="form-label">Condition</label>
+            <select
+              id="filter-condition"
+              name="condition"
+              class="form-select"
+              [(ngModel)]="filterDraft.condition"
+            >
+              <option value="">Any condition</option>
+              @for (c of conditions; track c) {
+                <option>{{ c }}</option>
+              }
+            </select>
+          </div>
+          <div class="col-sm-6">
+            <label for="filter-location" class="form-label">Location</label>
+            <select
+              id="filter-location"
+              name="location"
+              class="form-select"
+              [(ngModel)]="filterDraft.location"
+            >
+              <option value="">Any location</option>
+              @for (l of locations; track l) {
+                <option>{{ l }}</option>
+              }
+            </select>
+          </div>
+          <div class="col-sm-6">
+            <label for="filter-set" class="form-label">Set</label>
+            <select id="filter-set" name="set" class="form-select" [(ngModel)]="filterDraft.set">
+              <option value="">Any set</option>
+              @for (s of sets; track s) {
+                <option>{{ s }}</option>
+              }
+            </select>
+          </div>
+          <div class="col-sm-6">
+            <label for="filter-color" class="form-label">Color identity</label>
+            <select
+              id="filter-color"
+              name="color"
+              class="form-select"
+              [(ngModel)]="filterDraft.color"
+            >
+              <option value="">Any color</option>
+              @for (c of colors; track c.value) {
+                <option [value]="c.value">{{ c.label }}</option>
+              }
+            </select>
+          </div>
+        </div>
+        <div class="filter-checks mt-4">
+          <label class="form-check">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              name="foil"
+              [(ngModel)]="filterDraft.foil"
+            />Foil only
+          </label>
+          <label class="form-check">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              name="favorite"
+              [(ngModel)]="filterDraft.favorite"
+            />Favorites only
+          </label>
+          <label class="form-check">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              name="trade"
+              [(ngModel)]="filterDraft.trade"
+            />Available for trade
+          </label>
+        </div>
+        <button type="button" class="btn btn-link ps-0" (click)="resetFilterForm()">
+          Reset filters
+        </button>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+          Cancel
+        </button>
+        <button class="btn btn-primary" type="submit" data-bs-dismiss="modal">Apply Filters</button>
+      </div>
+    </form>
+  </div>
+</div>

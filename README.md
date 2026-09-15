@@ -1,59 +1,47 @@
-# CollectionManager
+# MTG Collection Manager — UI Prototype
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.1.8.
+An Angular interface for a personal Magic: The Gathering collection, built with Bootstrap and customized using SCSS. This project focuses on the assignment's interface requirements.
 
-## Development server
+## Run and check
 
-To start a local development server, run:
-
-```bash
-ng serve
+```sh
+npm install
+npm start
+npm run build
+npm test -- --watch=false
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+`npm start` opens a development server at http://localhost:4200.
 
-## Code scaffolding
+## What is implemented
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+- Responsive header, footer, branding, and card images.
+- Desktop collection table and compact rows on smaller screens, without horizontal scrolling.
+- Top navigation on desktop and fixed bottom navigation on mobile.
+- Custom SCSS for typography, spacing, navigation, table and row layouts, condition badges, buttons, and dialogs.
+- Realistic static sample cards, with sample Collection, Favorites, and Trade pages.
+- Bootstrap dialogs for Add Card, Manage Card, filtering, and a removal confirmation state.
+- Form controls, a sort selector, and a heart button that demonstrates its pressed state.
+- The previously implemented sample card lookup and dependent printing selection. Selecting a printing determines which foil options are available.
 
-```bash
-ng generate component component-name
-```
+## Prototype behavior
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+**The controls do not change the sample collection.** Add Card, Save Changes, Remove Card, and Apply Filters close their dialogs. They do not add, update, remove, or filter rows. The search field and sort selector can be used, but do not change the displayed list. Heart button state is a visual preview; it does not update the Favorites page.
 
-```bash
-ng generate --help
-```
+Manage Card opens with sample values. Changes remain in that form only and are reset when a card is opened again. The removal confirmation demonstrates the dialog flow without deleting anything.
 
-## Building
+The small card lookup inside Add Card remains interactive to demonstrate the previously agreed form sequence: choose a card, choose its printing, then view the allowed finish. It searches only Dogmeat, Lightning Bolt, and Sol Ring from the sample catalog.
 
-To build the project run:
+There is no collection store, persistence, backend, live Scryfall search, or price lookup. Images load directly from the supplied Scryfall image URLs.
 
-```bash
-ng build
-```
+## Files
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+- `src/app/app.html`: shared header, footer, router outlet, and mobile navigation.
+- `src/app/app.routes.ts`: routes for the three sample pages.
+- `src/app/data/sample-cards.ts`: static card data and sample printings.
+- `src/app/pages/collection/collection.html`: table, mobile rows, and dialog markup.
+- `src/app/pages/collection/collection.ts`: sample-view selection and form-preview behavior.
+- `src/styles.scss`: Bootstrap theme customization.
+- Component SCSS files: responsive layout and component styling.
 
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+The desktop table starts at 1200px; navigation moves to the bottom below 768px.
