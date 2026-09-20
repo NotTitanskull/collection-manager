@@ -1,0 +1,8 @@
+@use "navigation";
+@use "collection";
+@use "binders";
+
+// Hide unprocessed Vue expressions while the CDN script loads.
+[v-cloak] {
+  display: none;
+}

@@ -1,0 +1,1042 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MTG Collection Manager</title>
+    <link rel="icon" href="data:," />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="css/main.css" />
+    <script defer src="https://cdn.jsdelivr.net/npm/vue@3.5.40/dist/vue.global.js"></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script defer src="js/components/CardSearch.js"></script>
+    <script defer src="js/components/BinderPicker.js"></script>
+    <script defer src="js/app.js"></script>
+  </head>
+  <body>
+    <noscript>Please enable JavaScript to use this collection prototype.</noscript>
+
+    <div id="app" class="app-shell" v-cloak>
+      <header class="site-header border-bottom bg-white">
+        <div class="container header-content">
+          <a
+            class="site-brand"
+            href="#collection"
+            :class="{ 'is-active': view === 'collection' }"
+            :aria-current="view === 'collection' ? 'page' : null">
+            MTG Collection
+          </a>
+
+          <nav class="desktop-nav d-none d-md-flex" aria-label="Main navigation">
+            <a
+              class="site-nav-link"
+              href="#collection"
+              :class="{ 'is-active': view === 'collection' }"
+              :aria-current="view === 'collection' ? 'page' : null">
+              Collection
+            </a>
+            <a
+              class="site-nav-link"
+              href="#trade"
+              :class="{ 'is-active': view === 'trade' }"
+              :aria-current="view === 'trade' ? 'page' : null">
+              Trade
+            </a>
+            <a
+              class="site-nav-link"
+              href="#binders"
+              :class="{ 'is-active': view === 'binders' }"
+              :aria-current="view === 'binders' ? 'page' : null">
+              Binders
+            </a>
+          </nav>
+        </div>
+      </header>
+
+      <main class="container py-4">
+        <div v-if="storageError" class="alert alert-danger" role="alert">
+          {{ storageError }}
+          <button class="btn btn-sm btn-outline-danger" type="button" @click="retryStorage">
+            Retry saving
+          </button>
+        </div>
+        <div class="collection-page">
+          <section v-if="view === 'binders'" class="binders-page" aria-labelledby="binders-title">
+            <a v-if="selectedBinder" class="binder-back" href="#binders">← All binders</a>
+            <div class="binder-page-heading">
+              <div>
+                <p class="binder-eyebrow">YOUR COLLECTION, ORGANIZED</p>
+                <h1 id="binders-title">{{ selectedBinder ? selectedBinder.name : 'Binders' }}</h1>
+                <p class="text-secondary mb-0">
+                  {{ selectedBinder ? selectedBinder.description : binderIntro }}
+                </p>
+              </div>
+              <button
+                type="button"
+                class="btn"
+                :class="selectedBinder ? 'btn-outline-secondary' : 'btn-primary'"
+                data-bs-toggle="modal"
+                data-bs-target="#binder-modal"
+                v-if="!selectedBinder || !selectedBinder.automatic"
+                @click="openBinderForm(selectedBinder)">
+                {{ selectedBinder ? 'Edit Binder' : '+ Create Binder' }}
+              </button>
+              <button
+                v-if="selectedBinder && !selectedBinder.locked"
+                type="button"
+                class="btn btn-outline-danger"
+                @click="requestBinderRemoval(selectedBinder)"
+                data-bs-toggle="modal"
+                data-bs-target="#delete-binder-modal">
+                Delete Binder
+              </button>
+            </div>
+            <p v-if="binderNotice" role="status" class="alert alert-info">{{ binderNotice }}</p>
+            <template v-if="!selectedBinder">
+              <p class="small text-secondary">
+                {{ binders.length }} binders · Select a binder to view its cards
+              </p>
+              <div class="binder-grid">
+                <article v-for="binder in binders" :key="binder.id" class="binder-card card">
+                  <div
+                    class="binder-cover"
+                    :class="'binder-cover--' + binder.color"
+                    aria-hidden="true">
+                    <span class="binder-spine"></span>
+                    <i
+                      v-if="binder.locked"
+                      class="bi bi-lock-fill binder-lock"
+                      title="Permanent binder"
+                      aria-label="Permanent binder"></i>
+                    <span class="binder-cover-label">{{ binder.name }}</span>
+                    <span class="binder-cover-mark">MTG</span>
+                  </div>
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                      <h2 class="h5">
+                        <span
+                          v-if="binder.locked"
+                          class="binder-lock"
+                          title="Permanent binder"
+                          aria-label="Permanent binder">
+                          🔒
+                        </span>
+                        {{ binder.name }}
+                      </h2>
+                      <span class="badge text-bg-light">
+                        {{ binderCards(binder).length }} {{ binderCards(binder).length === 1 ?
+                        'card' : 'cards' }}
+                      </span>
+                    </div>
+                    <p class="text-secondary small">{{ binder.description }}</p>
+                    <a
+                      :href="'#binders/' + binder.id"
+                      class="binder-open"
+                      :aria-label="'Open ' + binder.name">
+                      Open binder
+                      <span aria-hidden="true">→</span>
+                    </a>
+                  </div>
+                </article>
+              </div>
+            </template>
+            <template v-else>
+              <p class="small text-secondary">
+                {{ binderCards(selectedBinder).length }} {{ binderCards(selectedBinder).length === 1
+                ? 'card' : 'cards' }} in this binder
+              </p>
+              <ul v-if="binderCards(selectedBinder).length" class="binder-contents list-unstyled">
+                <li
+                  v-for="card in binderCards(selectedBinder)"
+                  :key="card.id"
+                  class="collection-row">
+                  <img class="card-thumbnail" :src="card.image" :alt="card.name" />
+                  <div class="card-details">
+                    <h2 class="h6">
+                      <button
+                        class="card-name-button"
+                        type="button"
+                        data-bs-toggle="modal"
+                        data-bs-target="#manage-card-modal"
+                        @click="openManage(card.id)">
+                        {{ card.name }}
+                      </button>
+                    </h2>
+                    <p class="small text-secondary mb-2">
+                      {{ card.printing }} · {{ card.foil ? 'Foil' : 'Nonfoil' }}
+                    </p>
+                    <span class="badge text-bg-light">{{ card.condition }}</span>
+                    <span class="small ms-2">×{{ card.quantity }}</span>
+                  </div>
+                  <button
+                    class="btn btn-outline-secondary"
+                    type="button"
+                    :aria-label="'Manage ' + card.name"
+                    data-bs-toggle="modal"
+                    data-bs-target="#manage-card-modal"
+                    @click="openManage(card.id)">
+                    Manage
+                  </button>
+                </li>
+              </ul>
+              <div v-else class="binder-empty">
+                <span class="binder-empty-symbol" aria-hidden="true">▤</span>
+                <h2 class="h4">Room for your next find</h2>
+                <p class="text-secondary">
+                  This binder is empty. Cards assigned to it will appear here.
+                </p>
+                <a class="btn btn-outline-primary" href="#collection">Browse Collection</a>
+              </div>
+            </template>
+          </section>
+
+          <div
+            class="modal fade"
+            id="binder-modal"
+            ref="binderModal"
+            tabindex="-1"
+            aria-labelledby="binder-modal-title"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+              <form class="modal-content" @submit.prevent="saveBinder">
+                <div class="modal-header">
+                  <h2 class="modal-title fs-5" id="binder-modal-title">
+                    {{ editingBinder ? 'Edit Binder' : 'Create Binder' }}
+                  </h2>
+                  <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+                </div>
+                <div class="modal-body dialog-form">
+                  <section class="form-section">
+                    <h3 class="h6 mb-3">Binder details</h3>
+                    <label class="form-label" for="binder-name">Name</label>
+                    <input
+                      class="form-control mb-3"
+                      id="binder-name"
+                      v-model="binderDraft.name"
+                      required
+                      maxlength="60"
+                      placeholder="e.g. Showcase Binder" />
+                    <label class="form-label" for="binder-description">
+                      Description
+                      <span class="text-secondary small">(optional)</span>
+                    </label>
+                    <textarea
+                      class="form-control"
+                      id="binder-description"
+                      v-model="binderDraft.description"
+                      rows="3"
+                      maxlength="180"
+                      placeholder="What will you keep here?"></textarea>
+                  </section>
+                  <section class="form-section">
+                    <fieldset class="binder-color-fieldset">
+                      <legend class="float-none w-100 fs-6 fw-semibold mb-3">Cover color</legend>
+                      <div class="binder-color-options">
+                        <label
+                          v-for="color in binderColors"
+                          :key="color"
+                          class="binder-color-choice">
+                          <input
+                            class="visually-hidden"
+                            type="radio"
+                            name="binder-color"
+                            :value="color"
+                            v-model="binderDraft.color" />
+                          <span
+                            class="binder-color-dot"
+                            :class="'binder-cover--' + color"
+                            aria-hidden="true"></span>
+                          <span class="text-capitalize">{{ color }}</span>
+                        </label>
+                      </div>
+                    </fieldset>
+                  </section>
+                  <p class="small text-secondary mb-0">
+                    Cards can be assigned from the add and manage card forms.
+                  </p>
+                </div>
+                <div class="modal-footer justify-content-between">
+                  <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    Cancel
+                  </button>
+                  <button type="submit" class="btn btn-primary" data-bs-dismiss="modal">
+                    {{ editingBinder ? 'Save Changes' : 'Create Binder' }}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div
+            class="modal fade"
+            id="delete-binder-modal"
+            tabindex="-1"
+            aria-labelledby="delete-binder-title"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h2 id="delete-binder-title" class="modal-title fs-5">Delete Binder?</h2>
+                  <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                  <p>
+                    Delete
+                    <strong>{{ pendingBinderRemoval?.name }}</strong>
+                    ?
+                  </p>
+                  <p class="text-secondary mb-0">
+                    Your cards will remain in your collection and any other binders.
+                  </p>
+                </div>
+                <div class="modal-footer justify-content-between">
+                  <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">
+                    Cancel
+                  </button>
+                  <button
+                    class="btn btn-danger"
+                    type="button"
+                    data-bs-dismiss="modal"
+                    @click="removeBinder">
+                    Delete Binder
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <section v-if="view !== 'binders'">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+              <div>
+                <h1>{{ pageDetails[view].title }}</h1>
+                <p class="text-secondary mb-0">{{ pageDetails[view].description }}</p>
+              </div>
+
+              <div class="d-flex align-items-center gap-3">
+                <span class="text-secondary">
+                  {{ view === 'trade' ? tradeOfferingCards.length + ' card' +
+                  (tradeOfferingCards.length === 1 ? '' : 's') : collectionCards.length + ' cards'
+                  }}
+                </span>
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  data-bs-toggle="modal"
+                  data-bs-target="#add-card-modal"
+                  @click="openAddCard('collection')">
+                  + Add Card
+                </button>
+              </div>
+            </div>
+
+            <section
+              v-if="view === 'trade'"
+              class="trade-workspace"
+              aria-labelledby="trade-workspace-title">
+              <div class="trade-summary">
+                <div>
+                  <p class="trade-eyebrow">TRADE CHECK</p>
+                  <h2 id="trade-workspace-title">Build a balanced trade</h2>
+                  <p class="text-secondary mb-0">
+                    Add cards to each side and compare their estimated market values.
+                  </p>
+                </div>
+                <div class="trade-balance" :class="'trade-balance--' + tradeStatus.tone">
+                  <span class="trade-balance-label">{{ tradeStatus.label }}</span>
+                  <strong>
+                    {{ formatPrice(tradeDifference === null ? null : Math.abs(tradeDifference)) }}
+                  </strong>
+                  <small>{{ tradeDifferenceLabel }}</small>
+                </div>
+              </div>
+
+              <div class="trade-columns">
+                <section class="trade-column">
+                  <header class="trade-column-heading">
+                    <div>
+                      <h3>Your collection</h3>
+                      <p>Cards you are offering</p>
+                    </div>
+                    <strong>{{ formatPrice(tradeTotals.offering) }}</strong>
+                  </header>
+                  <ul class="trade-card-list list-unstyled">
+                    <li v-for="card in tradeOfferingCards" :key="card.id" class="trade-card">
+                      <img class="trade-card-image" :src="card.image" :alt="card.name" />
+                      <div class="trade-card-details">
+                        <h4>{{ card.name }}</h4>
+                        <p>{{ card.printing }} · {{ card.condition }}</p>
+                        <span>
+                          {{ card.quantity }} {{ card.quantity === 1 ? 'copy' : 'copies' }}
+                        </span>
+                      </div>
+                      <div class="trade-card-value">
+                        <strong>{{ formatPrice(cardValue(card)) }}</strong>
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-link"
+                          @click="removeTradeCard('offering', card.id)">
+                          Remove
+                        </button>
+                      </div>
+                    </li>
+                  </ul>
+                  <a href="#collection" class="btn btn-outline-primary trade-add-button">
+                    Manage collection cards
+                  </a>
+                </section>
+
+                <section class="trade-column">
+                  <header class="trade-column-heading">
+                    <div>
+                      <h3>Cards you want</h3>
+                      <p>Cards you hope to receive</p>
+                    </div>
+                    <strong>{{ formatPrice(tradeTotals.wanted) }}</strong>
+                  </header>
+                  <ul class="trade-card-list list-unstyled">
+                    <li v-for="card in tradeWantedCards" :key="card.id" class="trade-card">
+                      <img class="trade-card-image" :src="card.image" :alt="card.name" />
+                      <div class="trade-card-details">
+                        <h4>{{ card.name }}</h4>
+                        <p>{{ card.printing }} · {{ card.condition }}</p>
+                        <span>
+                          {{ card.quantity }} {{ card.quantity === 1 ? 'copy' : 'copies' }}
+                        </span>
+                      </div>
+                      <div class="trade-card-value">
+                        <strong>{{ formatPrice(cardValue(card)) }}</strong>
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-link"
+                          data-bs-toggle="modal"
+                          data-bs-target="#manage-card-modal"
+                          @click="openManage(card.id, 'wanted')">
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-link"
+                          @click="removeTradeCard('wanted', card.id)">
+                          Remove
+                        </button>
+                      </div>
+                    </li>
+                  </ul>
+                  <button
+                    type="button"
+                    class="btn btn-outline-primary trade-add-button"
+                    data-bs-toggle="modal"
+                    data-bs-target="#add-card-modal"
+                    @click="openAddCard('wanted')">
+                    + Add wanted card
+                  </button>
+                </section>
+              </div>
+              <p class="trade-disclaimer">
+                Values are estimates for comparison only. Confirm the exact printing, condition, and
+                current market price before finalizing a trade.
+              </p>
+            </section>
+
+            <div v-if="view !== 'trade'" class="collection-toolbar">
+              <label class="search-field">
+                <span class="visually-hidden">Search your collection</span>
+                <input
+                  type="search"
+                  class="form-control"
+                  placeholder="Search cards…"
+                  v-model="searchQuery" />
+              </label>
+
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                data-bs-toggle="modal"
+                data-bs-target="#filter-modal"
+                @click="openFilters">
+                Filter
+              </button>
+
+              <label class="sort-field">
+                <span class="visually-hidden">Sort cards</span>
+                <select class="form-select" v-model="sortOrder">
+                  <option v-for="option in sortOptions" :key="option.value" :value="option.value">
+                    {{ option.label }}
+                  </option>
+                </select>
+              </label>
+            </div>
+
+            <div v-if="view !== 'trade'" class="mt-3 d-flex align-items-center gap-3">
+              <small class="text-secondary" role="status">
+                {{ visibleCards.length }} of {{ collectionCards.length }} cards
+              </small>
+              <button type="button" class="btn btn-sm btn-outline-secondary" @click="clearFilters">
+                Clear search &amp; filters
+              </button>
+            </div>
+            <p v-if="view !== 'trade' && !visibleCards.length" class="text-secondary mt-4">
+              No cards match. Clear the filters or add a card to your collection.
+            </p>
+            <ul v-if="view !== 'trade'" class="list-unstyled mt-4">
+              <li v-for="card in visibleCards" :key="card.id" class="collection-row">
+                <img class="card-thumbnail" :src="card.image" :alt="card.name" />
+                <div class="card-details">
+                  <h2 class="h6 mb-1">
+                    <button
+                      type="button"
+                      class="card-name-button"
+                      data-bs-toggle="modal"
+                      data-bs-target="#manage-card-modal"
+                      @click="openManage(card.id)">
+                      {{ card.name }}
+                    </button>
+                  </h2>
+                  <p class="small text-secondary mb-2">
+                    {{ card.printing }} · {{ card.foil ? 'Foil' : 'Nonfoil' }}
+                  </p>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="badge text-bg-light">{{ card.condition }}</span>
+                    <span class="small">×{{ card.quantity }}</span>
+                  </div>
+                  <p class="small text-secondary mt-2 mb-0">{{ binderNames(card.binderIds) }}</p>
+                </div>
+                <div class="card-row-actions">
+                  <button
+                    type="button"
+                    class="btn manage-card-button"
+                    :aria-label="'Manage ' + card.name"
+                    data-bs-toggle="modal"
+                    data-bs-target="#manage-card-modal"
+                    @click="openManage(card.id)">
+                    <span aria-hidden="true">›</span>
+                  </button>
+                </div>
+              </li>
+            </ul>
+          </section>
+
+          <div
+            class="modal fade"
+            id="add-card-modal"
+            ref="addCardModal"
+            tabindex="-1"
+            aria-labelledby="add-card-title"
+            aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+              <form
+                class="modal-content"
+                @submit.prevent="addCard"
+                @keydown.enter="preventImplicitAddSubmit">
+                <div class="modal-header">
+                  <h2 class="modal-title fs-5" id="add-card-title">Add Card</h2>
+                  <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body dialog-form">
+                  <section class="form-section">
+                    <div class="section-heading">
+                      <span class="section-number">1</span>
+                      <div>
+                        <h3>Choose a card</h3>
+                        <p>Find the card and select its exact printing.</p>
+                      </div>
+                    </div>
+
+                    <card-search
+                      class="mb-3"
+                      v-model="addDraft.name"
+                      :suggestions="suggestions"
+                      :loading="isLookingUp"
+                      :notice="addNotice"
+                      :error="addError"
+                      @select="selectSuggestion"
+                      @close="cancelCardSearch"></card-search>
+
+                    <div>
+                      <label for="add-card-printing" class="form-label">Printing</label>
+                      <select
+                        id="add-card-printing"
+                        class="form-select"
+                        v-model="addDraft.printingId"
+                        @change="selectPrinting"
+                        required>
+                        <option value="">Select a printing</option>
+                        <option
+                          v-for="printing in printings"
+                          :key="printing.id"
+                          :value="printing.id">
+                          {{ formatPrinting(printing) }}
+                        </option>
+                      </select>
+                    </div>
+                  </section>
+
+                  <section class="form-section">
+                    <div class="section-heading">
+                      <span class="section-number">2</span>
+                      <div>
+                        <h3>Copy details</h3>
+                        <p>Describe the copies being added to the collection.</p>
+                      </div>
+                    </div>
+
+                    <div class="add-copy-list">
+                      <div
+                        v-for="(copy, index) in addDraft.copies"
+                        :key="index"
+                        class="add-copy-row">
+                        <div>
+                          <label :for="'add-card-condition-' + index" class="form-label">
+                            Condition
+                          </label>
+                          <select
+                            :id="'add-card-condition-' + index"
+                            class="form-select"
+                            v-model="copy.condition">
+                            <option
+                              v-for="condition in conditions"
+                              :key="condition"
+                              :value="condition">
+                              {{ condition }}
+                            </option>
+                          </select>
+                        </div>
+                        <div>
+                          <label :for="'add-card-quantity-' + index" class="form-label">
+                            Quantity
+                          </label>
+                          <input
+                            :id="'add-card-quantity-' + index"
+                            type="number"
+                            class="form-control"
+                            min="1"
+                            step="1"
+                            v-model.number="copy.quantity" />
+                        </div>
+                        <button
+                          v-if="addDraft.copies.length > 1"
+                          type="button"
+                          class="btn btn-outline-secondary align-self-end"
+                          :aria-label="'Remove copy row ' + (index + 1)"
+                          @click="removeCopyRow(index)">
+                          <i class="bi bi-trash" aria-hidden="true"></i>
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        class="btn btn-outline-primary btn-sm"
+                        @click="addCopyRow">
+                        <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                        Add another condition
+                      </button>
+                    </div>
+
+                    <div class="mt-3">
+                      <binder-picker
+                        v-model="addDraft.binderIds"
+                        :binders="customBinders"
+                        picker-id="add-binder-picker"></binder-picker>
+                    </div>
+                  </section>
+
+                  <section class="form-section">
+                    <div class="section-heading">
+                      <span class="section-number">3</span>
+                      <div>
+                        <h3>Collection options</h3>
+                        <p>Add any special properties for this entry.</p>
+                      </div>
+                    </div>
+
+                    <div class="option-list">
+                      <label class="option-control" for="add-card-foil">
+                        <span>
+                          <strong>Foil</strong>
+                          <small>Finish choices depend on the selected printing.</small>
+                        </span>
+
+                        <input
+                          id="add-card-foil"
+                          type="checkbox"
+                          class="form-check-input"
+                          v-model="addDraft.foil"
+                          :disabled="addFoilLocked" />
+                      </label>
+
+                      <label class="option-control" for="add-card-favorite">
+                        <span>
+                          <strong>Favorite</strong>
+                          <small>Show this card in the Favorites binder.</small>
+                        </span>
+
+                        <input
+                          id="add-card-favorite"
+                          type="checkbox"
+                          class="form-check-input"
+                          v-model="addDraft.favorite" />
+                      </label>
+
+                      <label class="option-control" for="add-card-trade">
+                        <span>
+                          <strong>Available for trade</strong>
+                          <small>Include this card on the Trade page.</small>
+                        </span>
+
+                        <input
+                          id="add-card-trade"
+                          type="checkbox"
+                          class="form-check-input"
+                          v-model="addDraft.trade" />
+                      </label>
+                    </div>
+                  </section>
+                </div>
+
+                <div class="modal-footer justify-content-between">
+                  <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    Cancel
+                  </button>
+                  <button type="submit" class="btn btn-primary" :disabled="!canAddCard">
+                    Add Card
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div
+            class="modal fade"
+            id="filter-modal"
+            tabindex="-1"
+            aria-labelledby="filter-title"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h2 class="modal-title fs-5" id="filter-title">Filter Cards</h2>
+                  <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body dialog-form">
+                  <section class="form-section" aria-labelledby="filter-details-title">
+                    <div class="section-heading">
+                      <h3 id="filter-details-title">Card details</h3>
+                    </div>
+                    <div class="mb-3">
+                      <label for="filter-condition" class="form-label">Condition</label>
+                      <select
+                        id="filter-condition"
+                        class="form-select"
+                        v-model="filterDraft.condition">
+                        <option value="">Any condition</option>
+                        <option v-for="condition in conditions" :key="condition" :value="condition">
+                          {{ condition }}
+                        </option>
+                      </select>
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="filter-set" class="form-label">Set</label>
+                      <select id="filter-set" class="form-select" v-model="filterDraft.set">
+                        <option value="">Any set</option>
+                        <option v-for="set in availableSets" :key="set" :value="set">
+                          {{ set }}
+                        </option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label for="filter-location" class="form-label">Binder</label>
+                      <select id="filter-location" class="form-select" v-model="filterDraft.binder">
+                        <option value="">Any binder</option>
+                        <option v-for="binder in binders" :key="binder.id" :value="binder.id">
+                          {{ binder.name }}
+                        </option>
+                      </select>
+                    </div>
+                  </section>
+
+                  <section class="form-section" aria-labelledby="filter-options-title">
+                    <div class="section-heading">
+                      <h3 id="filter-options-title">Collection options</h3>
+                    </div>
+                    <div class="option-list">
+                      <label class="option-control" for="filter-foil">
+                        <strong>Foil only</strong>
+                        <input
+                          id="filter-foil"
+                          v-model="filterDraft.foil"
+                          type="checkbox"
+                          class="form-check-input" />
+                      </label>
+
+                      <label class="option-control" for="filter-favorites">
+                        <strong>Favorites only</strong>
+                        <input
+                          id="filter-favorites"
+                          v-model="filterDraft.favorite"
+                          type="checkbox"
+                          class="form-check-input" />
+                      </label>
+
+                      <label class="option-control" for="filter-trade">
+                        <strong>Available for trade</strong>
+                        <input
+                          id="filter-trade"
+                          v-model="filterDraft.trade"
+                          type="checkbox"
+                          class="form-check-input" />
+                      </label>
+                    </div>
+                  </section>
+                </div>
+
+                <div class="modal-footer justify-content-between">
+                  <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-primary"
+                    data-bs-dismiss="modal"
+                    @click="applyFilters">
+                    Apply Filters
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            class="modal fade"
+            id="manage-card-modal"
+            ref="manageCardModal"
+            tabindex="-1"
+            aria-labelledby="manage-card-title"
+            :aria-describedby="confirmingRemoval ? 'remove-card-description' : undefined"
+            aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h2 class="modal-title fs-5" id="manage-card-title">{{ manageTitle }}</h2>
+                  <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+                </div>
+
+                <div v-show="!confirmingRemoval" class="modal-body dialog-form">
+                  <p v-if="manageError" class="text-danger mb-0" role="alert">{{ manageError }}</p>
+                  <section class="form-section manage-summary" aria-labelledby="managed-card-name">
+                    <img
+                      :src="managedCard.image"
+                      :alt="managedCard.name"
+                      class="manage-card-image" />
+                    <div>
+                      <h3 id="managed-card-name">{{ managedCard.name }}</h3>
+                      <p class="text-secondary mb-2">{{ managedCard.type }}</p>
+                      <p class="small mb-0">{{ managedCard.printing }}</p>
+                    </div>
+                  </section>
+
+                  <section class="form-section" aria-labelledby="manage-copy-heading">
+                    <div class="section-heading">
+                      <h3 id="manage-copy-heading">Copy details</h3>
+                    </div>
+                    <div class="copy-details">
+                      <div>
+                        <label for="manage-condition" class="form-label">Condition</label>
+                        <select
+                          id="manage-condition"
+                          class="form-select"
+                          v-model="managedCard.condition">
+                          <option
+                            v-for="condition in conditions"
+                            :key="condition"
+                            :value="condition">
+                            {{ condition }}
+                          </option>
+                        </select>
+                      </div>
+                      <div>
+                        <label for="manage-quantity" class="form-label">Quantity</label>
+                        <input
+                          id="manage-quantity"
+                          type="number"
+                          class="form-control"
+                          min="1"
+                          step="1"
+                          v-model="managedCard.quantity" />
+                      </div>
+                    </div>
+                    <div class="my-3" v-if="manageMode === 'collection'">
+                      <binder-picker
+                        v-model="managedCard.binderIds"
+                        :binders="customBinders"
+                        picker-id="manage-binder-picker"></binder-picker>
+                    </div>
+                    <div class="my-3">
+                      <label class="form-label" for="manage-price">
+                        Estimated unit value (USD)
+                      </label>
+                      <input
+                        id="manage-price"
+                        class="form-control"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="Unavailable"
+                        v-model.number="managedCard.price" />
+                    </div>
+                    <label class="option-control" for="manage-foil">
+                      <span>
+                        <strong>Foil</strong>
+                        <small>Finish choices depend on the selected printing.</small>
+                      </span>
+                      <input
+                        id="manage-foil"
+                        type="checkbox"
+                        class="form-check-input"
+                        v-model="managedCard.foil"
+                        :disabled="manageFoilLocked" />
+                    </label>
+                  </section>
+
+                  <section
+                    v-if="manageMode === 'collection'"
+                    class="form-section"
+                    aria-labelledby="manage-options-heading">
+                    <div class="section-heading">
+                      <h3 id="manage-options-heading">Collection options</h3>
+                    </div>
+                    <div class="option-list">
+                      <label class="option-control" for="manage-favorite">
+                        <span>
+                          <strong>Favorite</strong>
+                          <small>Show this card in the Favorites binder.</small>
+                        </span>
+                        <input
+                          id="manage-favorite"
+                          type="checkbox"
+                          class="form-check-input"
+                          v-model="managedCard.favorite" />
+                      </label>
+                      <label class="option-control" for="manage-trade">
+                        <span>
+                          <strong>Available for trade</strong>
+                          <small>Include this card on the Trade page.</small>
+                        </span>
+                        <input
+                          id="manage-trade"
+                          type="checkbox"
+                          class="form-check-input"
+                          v-model="managedCard.trade" />
+                      </label>
+                    </div>
+                  </section>
+
+                  <button
+                    ref="removeCardButton"
+                    type="button"
+                    class="btn btn-outline-danger manage-remove-button"
+                    @click="showRemovalConfirmation(true)">
+                    {{ manageMode === 'wanted' ? 'Remove wanted card' : 'Remove from collection' }}
+                  </button>
+                </div>
+                <div v-show="!confirmingRemoval" class="modal-footer justify-content-between">
+                  <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-primary"
+                    data-bs-dismiss="modal"
+                    @click="saveManagedCard">
+                    Save Changes
+                  </button>
+                </div>
+
+                <div v-show="confirmingRemoval" class="modal-body dialog-form">
+                  <section class="form-section">
+                    <p id="remove-card-description" class="mb-0">
+                      Remove
+                      <strong>{{ managedCard.name }}</strong>
+                      {{ removalDescription }}
+                    </p>
+                  </section>
+                </div>
+                <div v-show="confirmingRemoval" class="modal-footer justify-content-between">
+                  <button
+                    ref="keepCardButton"
+                    type="button"
+                    class="btn btn-outline-secondary"
+                    @click="showRemovalConfirmation(false)">
+                    Keep Card
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-danger"
+                    data-bs-dismiss="modal"
+                    @click="removeManagedCard">
+                    Remove Card
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <footer class="container py-3 border-top">
+        <small>MTG Collection Manager</small>
+      </footer>
+
+      <nav class="mobile-nav d-md-none" aria-label="Main navigation">
+        <a
+          class="site-nav-link"
+          href="#collection"
+          :class="{ 'is-active': view === 'collection' }"
+          :aria-current="view === 'collection' ? 'page' : null">
+          Collection
+        </a>
+        <a
+          class="site-nav-link"
+          href="#trade"
+          :class="{ 'is-active': view === 'trade' }"
+          :aria-current="view === 'trade' ? 'page' : null">
+          Trade
+        </a>
+        <a
+          class="site-nav-link"
+          href="#binders"
+          :class="{ 'is-active': view === 'binders' }"
+          :aria-current="view === 'binders' ? 'page' : null">
+          Binders
+        </a>
+      </nav>
+    </div>
+  </body>
+</html>

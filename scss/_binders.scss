@@ -1,0 +1,177 @@
+$cover-colors: (
+  "blue": #2856a5,
+  "purple": #71539a,
+  "green": #39766b,
+);
+
+.binders-page {
+  .binder-page-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+
+    > div {
+      flex: 1 1 20rem;
+    }
+    .btn {
+      flex-shrink: 0;
+    }
+  }
+
+  .binder-eyebrow {
+    color: #2856c5;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+  }
+
+  .binder-back {
+    display: inline-block;
+    margin-bottom: 1.5rem;
+  }
+  .binder-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+    gap: 1.5rem;
+  }
+
+  .binder-card {
+    overflow: hidden;
+    border-color: #dfe5ef;
+    border-radius: 0.75rem;
+    .card-body {
+      display: flex;
+      flex-direction: column;
+      padding: 1.25rem;
+    }
+    .badge {
+      white-space: nowrap;
+    }
+  }
+
+  .binder-cover {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 10rem;
+    padding: 1.5rem 1.5rem 1.5rem 2.75rem;
+    color: white;
+    border-bottom: 1px solid rgb(0 0 0 / 10%);
+  }
+  .binder-spine {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 1.25rem;
+    background: rgb(0 0 0 / 15%);
+    border-right: 2px solid rgb(255 255 255 / 15%);
+  }
+  .binder-cover-label {
+    font-size: 1.2rem;
+    font-weight: 600;
+  }
+  .binder-cover-mark {
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    opacity: 0.8;
+  }
+  .binder-lock {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 1.1rem;
+    opacity: 0.9;
+  }
+  .binder-open {
+    display: flex;
+    justify-content: space-between;
+    padding-top: 1rem;
+    margin-top: auto;
+    border-top: 1px solid #dfe5ef;
+    color: #2856c5;
+    font-weight: 600;
+    text-decoration: none;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+  .binder-empty {
+    padding: 3rem 1.25rem;
+    text-align: center;
+    background: #f5f7fb;
+    border: 1px dashed #bac7dc;
+    border-radius: 0.75rem;
+  }
+  .binder-empty-symbol {
+    display: block;
+    font-size: 3rem;
+    color: #2856c5;
+    margin-bottom: 1rem;
+  }
+  .binder-contents {
+    border-block: 1px solid #dfe5ef;
+  }
+  .collection-row:last-child {
+    border-bottom: 0;
+  }
+}
+
+@each $name, $color in $cover-colors {
+  .binder-cover--#{$name} {
+    background-color: $color;
+  }
+}
+
+.binder-color-fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.binder-color-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+
+  @media (max-width: 359.98px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.binder-color-choice {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.35rem;
+  border: 1px solid #dfe5ef;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+
+  &:hover { background: #f5f7fb; }
+  &:has(input:checked) {
+    border-color: #2856c5;
+    background: #e8efff;
+    box-shadow: inset 0 0 0 1px #2856c5;
+    font-weight: 600;
+  }
+  &:has(input:focus-visible) {
+    outline: 3px solid #2856c5;
+    outline-offset: 3px;
+  }
+}
+
+.binder-color-dot {
+  flex-shrink: 0;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 50%;
+}
