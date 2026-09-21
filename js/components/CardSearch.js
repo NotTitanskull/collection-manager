@@ -34,7 +34,7 @@ const CardSearch = {
     },
     selectHighlightedSuggestion() {
       const suggestion = this.suggestions[this.highlightedSuggestion] || this.suggestions[0];
-      if (suggestion) this.$emit("select", suggestion);
+      if (suggestion) this.selectSuggestion(suggestion);
     },
     selectSuggestion(suggestion) {
       this.highlightedSuggestion = -1;

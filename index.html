@@ -270,7 +270,7 @@
                   <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
                     Cancel
                   </button>
-                  <button type="submit" class="btn btn-primary" data-bs-dismiss="modal">
+                  <button type="submit" class="btn btn-primary">
                     {{ editingBinder ? 'Save Changes' : 'Create Binder' }}
                   </button>
                 </div>
@@ -408,7 +408,7 @@
                     <strong>{{ formatPrice(tradeTotals.wanted) }}</strong>
                   </header>
                   <ul class="trade-card-list list-unstyled">
-                    <li v-for="card in tradeWantedCards" :key="card.id" class="trade-card">
+                    <li v-for="card in tradeWanted" :key="card.id" class="trade-card">
                       <img class="trade-card-image" :src="card.image" :alt="card.name" />
                       <div class="trade-card-details">
                         <h4>{{ card.name }}</h4>
@@ -970,11 +970,7 @@
                   <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
                     Cancel
                   </button>
-                  <button
-                    type="button"
-                    class="btn btn-primary"
-                    data-bs-dismiss="modal"
-                    @click="saveManagedCard">
+                  <button type="button" class="btn btn-primary" @click="saveManagedCard">
                     Save Changes
                   </button>
                 </div>

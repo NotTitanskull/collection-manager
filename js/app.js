@@ -20,7 +20,6 @@ const manageExamples = {
       "https://cards.scryfall.io/normal/front/8/6/86b45e3e-8460-4678-87d1-d74479936c83.jpg?1783912422",
     condition: "Near Mint",
     quantity: 1,
-    copies: [{ condition: "Near Mint", quantity: 1 }],
     foil: true,
     favorite: true,
     trade: true,
@@ -67,7 +66,6 @@ const binderExamples = [
     color: "purple",
     automatic: true,
     locked: true,
-    cards: Object.keys(manageExamples).filter((id) => manageExamples[id].favorite),
   },
   {
     id: "trade",
@@ -75,21 +73,18 @@ const binderExamples = [
     description: "Cards set aside for trades at the next game night.",
     color: "blue",
     locked: true,
-    cards: ["dogmeat"],
   },
   {
     id: "showcase",
     name: "Showcase Binder",
     description: "A home for favorite artwork and special printings.",
     color: "purple",
-    cards: [],
   },
   {
     id: "archive",
     name: "Archive Binder",
     description: "Extra cards to keep organized for future decks.",
     color: "green",
-    cards: [],
   },
 ];
 
@@ -321,15 +316,15 @@ Vue.createApp({
     visibleCards() {
       const query = this.searchQuery.trim().toLowerCase();
       const f = this.filters;
+      const binderCardIds = f.binder
+        ? new Set((this.cardsByBinder.get(f.binder) || []).map((card) => card.id))
+        : null;
       const cards = this.collectionCards.filter(
         (card) =>
           (!query || `${card.name} ${card.printing} ${card.type}`.toLowerCase().includes(query)) &&
           (!f.condition || card.condition === f.condition) &&
           (!f.set || this.cardSet(card) === f.set) &&
-          (!f.binder ||
-            this.binderCards(this.binders.find((binder) => binder.id === f.binder)).some(
-              (entry) => entry.id === card.id,
-            )) &&
+          (!binderCardIds || binderCardIds.has(card.id)) &&
           (!f.foil || card.foil) &&
           (!f.favorite || card.favorite) &&
           (!f.trade || card.trade),
@@ -343,18 +338,21 @@ Vue.createApp({
     customBinders() {
       return this.binders.filter((binder) => !binder.locked);
     },
-    binderNames() {
-      return (binderIds = []) =>
-        binderIds
-          .map((binderId) => this.binders.find((binder) => binder.id === binderId)?.name)
-          .filter(Boolean)
-          .join(", ") || "No binder";
+    cardsByBinder() {
+      // Cache membership once per data change, rather than scanning for every row.
+      const groups = new Map(this.binders.map((binder) => [binder.id, []]));
+      for (const card of this.collectionCards) {
+        const ids = new Set(card.binderIds || []);
+        ids.delete("favorites");
+        ids.delete("trade");
+        if (card.favorite) ids.add("favorites");
+        if (card.trade) ids.add("trade");
+        for (const id of ids) groups.get(id)?.push(card);
+      }
+      return groups;
     },
     tradeOfferingCards() {
       return this.collectionCards.filter((card) => card.trade);
-    },
-    tradeWantedCards() {
-      return this.tradeWanted;
     },
     tradeTotals() {
       const total = (cards) =>
@@ -363,7 +361,7 @@ Vue.createApp({
           : cards.reduce((sum, card) => sum + card.price * card.quantity, 0);
       return {
         offering: total(this.tradeOfferingCards),
-        wanted: total(this.tradeWantedCards),
+        wanted: total(this.tradeWanted),
       };
     },
     tradeDifference() {
@@ -379,18 +377,6 @@ Vue.createApp({
       if (difference < 1) return { label: "Similar estimated value", tone: "fair" };
       if (difference < 5) return { label: "Close trade", tone: "close" };
       return { label: "Value gap", tone: "gap" };
-    },
-    binderCards() {
-      return (binder) => {
-        if (!binder) return [];
-        if (binder.automatic && binder.id === "favorites") {
-          return this.collectionCards.filter((card) => card.favorite);
-        }
-        if (binder.id === "trade") {
-          return this.collectionCards.filter((card) => card.trade);
-        }
-        return this.collectionCards.filter((card) => card.binderIds?.includes(binder.id));
-      };
     },
   },
   watch: {
@@ -427,6 +413,15 @@ Vue.createApp({
     this.cancelCardSearch();
   },
   methods: {
+    binderCards(binder) {
+      return this.cardsByBinder.get(binder?.id) || [];
+    },
+    binderNames(binderIds = []) {
+      return binderIds
+        .map((id) => this.binders.find((binder) => binder.id === id)?.name)
+        .filter(Boolean)
+        .join(", ") || "No binder";
+    },
     saveLocal(key, value) {
       try {
         localStorage.setItem(key, JSON.stringify(value));
@@ -519,7 +514,6 @@ Vue.createApp({
         color: this.binderDraft.color,
         locked: this.editingBinder ? Boolean(this.selectedBinder.locked) : false,
         automatic: false,
-        cards: this.editingBinder ? this.selectedBinder.cards : [],
       };
       if (this.editingBinder) {
         const index = this.binders.findIndex((entry) => entry.id === binder.id);
@@ -530,6 +524,7 @@ Vue.createApp({
       if (this.editingBinder) this.selectedBinder = binder;
       this.persistBinders();
       this.binderNotice = this.storageError ? "" : `${binder.name} saved.`;
+      bootstrap.Modal.getInstance(this.$refs.binderModal)?.hide();
     },
     removeBinder() {
       const binder = this.pendingBinderRemoval;
@@ -560,9 +555,6 @@ Vue.createApp({
       this.openingManagedCard = false;
       this.confirmingRemoval = false;
     },
-    emptyAddDraft() {
-      return emptyAddDraft();
-    },
     persistCollection() {
       return this.saveLocal("mtg-collection", this.collectionCards);
     },
@@ -571,7 +563,7 @@ Vue.createApp({
     },
     resetAddDraft() {
       this.cancelCardSearch();
-      this.addDraft = this.emptyAddDraft();
+      this.addDraft = emptyAddDraft();
       this.printings = [];
       this.addNotice = "";
       this.addError = false;
@@ -715,13 +707,14 @@ Vue.createApp({
     },
     addCard() {
       if (!this.canAddCard) return;
-      const cards = this.addDraft.copies.map((copy) =>
+      // Only persist card data, not the form's group list or selection field.
+      const { copies, printingId, ...cardDetails } = this.addDraft;
+      const cards = copies.map((copy) =>
         this.normalizeCardMembership({
-          ...this.addDraft,
+          ...cardDetails,
           id: crypto.randomUUID(),
           condition: copy.condition,
           quantity: Number(copy.quantity),
-          copies: undefined,
         }),
       );
       if (this.addMode === "wanted") {
@@ -764,6 +757,7 @@ Vue.createApp({
       });
       if (this.manageMode === "wanted") this.persistWanted();
       else this.persistCollection();
+      bootstrap.Modal.getInstance(this.$refs.manageCardModal)?.hide();
     },
     removeManagedCard() {
       const removedId = this.managedCard.id;
