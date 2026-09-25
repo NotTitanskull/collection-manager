@@ -4,10 +4,19 @@
   "private": true,
   "description": "Vue 3 CDN interface prototype; npm is only used to compile Sass.",
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "styles": "sass --no-source-map scss/main.scss css/main.css",
     "styles:watch": "sass --watch --no-source-map scss/main.scss:css/main.css"
   },
   "devDependencies": {
-    "sass": "1.104.1"
+    "@vitejs/plugin-vue": "^6.0.9",
+    "sass": "1.104.1",
+    "vite": "^8.3.0"
+  },
+  "dependencies": {
+    "vue": "^3.5.43",
+    "vue-router": "^5.3.1"
   }
 }

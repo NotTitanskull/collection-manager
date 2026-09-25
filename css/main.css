@@ -1,14 +1,14 @@
-.app-shell {
+.app-layout {
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
   padding-bottom: calc(4.25rem + env(safe-area-inset-bottom) + 1px);
 }
-.app-shell main {
+.app-layout main {
   flex: 1;
 }
 @media (min-width: 768px) {
-  .app-shell {
+  .app-layout {
     padding-bottom: 0;
   }
 }
