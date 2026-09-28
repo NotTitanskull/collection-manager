@@ -1,7 +1,5 @@
-$nav-accent: #2856c5;
-$nav-muted: #6c757d;
-$nav-border: #dfe5ef;
-$nav-active-background: #e8efff;
+@use "variables" as theme;
+
 $mobile-nav-height: 4.25rem;
 
 .app-layout {
@@ -28,7 +26,7 @@ $mobile-nav-height: 4.25rem;
 }
 
 .site-brand {
-  color: #212529;
+  color: theme.$text-color;
   font-size: 1.5rem;
   font-weight: 700;
   text-decoration: none;
@@ -38,24 +36,24 @@ $mobile-nav-height: 4.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: $nav-muted;
+  color: theme.$text-muted;
   font-weight: 600;
   text-decoration: none;
 
   &:hover {
-    color: $nav-accent;
-    background: $nav-active-background;
+    color: theme.$accent-color;
+    background: theme.$accent-background;
   }
 
   &.is-active {
-    color: $nav-accent;
+    color: theme.$accent-color;
   }
 }
 
 .site-brand,
 .site-nav-link {
   &:focus-visible {
-    outline: 3px solid $nav-accent;
+    outline: 3px solid theme.$accent-color;
     outline-offset: -3px;
   }
 }
@@ -69,7 +67,7 @@ $mobile-nav-height: 4.25rem;
     border-bottom: 3px solid transparent;
 
     &.is-active {
-      border-bottom-color: $nav-accent;
+      border-bottom-color: theme.$accent-color;
     }
   }
 }
@@ -81,8 +79,8 @@ $mobile-nav-height: 4.25rem;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   padding-bottom: env(safe-area-inset-bottom);
-  background: #fff;
-  border-top: 1px solid $nav-border;
+  background: theme.$surface-color;
+  border-top: 1px solid theme.$surface-border;
   box-shadow: 0 -3px 12px rgb(0 0 0 / 4%);
 
   .site-nav-link {
@@ -92,8 +90,8 @@ $mobile-nav-height: 4.25rem;
     font-size: 0.875rem;
 
     &.is-active {
-      background: $nav-active-background;
-      border-top-color: $nav-accent;
+      background: theme.$accent-background;
+      border-top-color: theme.$accent-color;
     }
   }
 }

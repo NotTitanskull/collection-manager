@@ -25,7 +25,7 @@ function updateSearch(event) {
   notice.value = "";
   name.value = event.target.value;
 
-  const query = name.value.trim();
+  const query = event.target.value.trim();
 
   if (query.length < 2) return;
 
@@ -145,4 +145,51 @@ onBeforeUnmount(closeSuggestions);
   </div>
 </template>
 
-<style scoped></style>
+<style scoped lang="scss">
+@use "../assets/scss/variables" as theme;
+
+.card-suggestions {
+  position: relative;
+  z-index: 2;
+  margin-top: -0.35rem;
+  overflow: hidden;
+  background: theme.$surface-color;
+  border: 1px solid theme.$suggestion-border;
+  border-top: 0;
+  border-radius: 0 0 0.5rem 0.5rem;
+  box-shadow: 0 0.4rem 0.8rem rgba(35, 54, 89, 0.08);
+}
+.has-suggestions {
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.card-suggestions-status {
+  margin: 0;
+  padding: 0.7rem 1rem;
+  color: theme.$text-muted;
+  font-size: 0.8rem;
+}
+.card-suggestion {
+  display: block;
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border: 0;
+  border-top: 1px solid theme.$subtle-border;
+  background: theme.$surface-color;
+  color: theme.$text-color;
+  font-size: 0.9rem;
+  text-align: left;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.card-suggestion:hover,
+.card-suggestion.is-highlighted {
+  background: theme.$accent-background;
+  color: theme.$accent-color;
+}
+.card-suggestion:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid theme.$accent-color;
+  outline-offset: -2px;
+}
+</style>

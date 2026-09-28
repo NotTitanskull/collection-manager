@@ -3,9 +3,11 @@ import { computed, ref } from "vue";
 import { collectionCards } from "../stores/collection.js";
 import CollectionEntry from "../components/CollectionEntry.vue";
 import AddCardModal from "../components/AddCardModal.vue";
+import ManageCardModal from "../components/ManageCardModal.vue";
 
 const search = ref("");
 const sortOrder = ref("name-asc");
+const selectedCard = ref(null);
 
 const filteredCards = computed(() => {
   const query = search.value.trim().toLowerCase();
@@ -54,11 +56,16 @@ const filteredCards = computed(() => {
     </div>
 
     <ul class="list-unstyled mt-4">
-      <CollectionEntry v-for="entry in filteredCards" :key="entry.entryId" :card="entry" />
+      <CollectionEntry
+        v-for="entry in filteredCards"
+        :key="entry.entryId"
+        :card="entry"
+        @manage="selectedCard = $event" />
     </ul>
 
     <p v-if="filteredCards.length === 0" class="text-secondary">No cards found.</p>
 
     <AddCardModal />
+    <ManageCardModal :card="selectedCard" />
   </section>
 </template>

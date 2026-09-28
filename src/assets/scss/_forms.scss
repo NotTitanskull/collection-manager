@@ -1,0 +1,118 @@
+@use "variables" as theme;
+
+// Shared dialog form sections
+.dialog-form {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: theme.$surface-background;
+
+  @media (max-width: 575.98px) {
+    padding: 0.75rem;
+  }
+
+  .form-section {
+    padding: 1.25rem;
+    background: theme.$surface-color;
+    border: 1px solid theme.$surface-border;
+    border-radius: 0.75rem;
+
+    @media (max-width: 575.98px) {
+      padding: 1rem;
+    }
+  }
+
+  .section-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+
+    h3 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    p {
+      margin: 0.2rem 0 0;
+      color: theme.$text-muted;
+      font-size: 0.8rem;
+    }
+  }
+
+  .section-number {
+    display: grid;
+    flex: 0 0 1.75rem;
+    width: 1.75rem;
+    height: 1.75rem;
+    place-items: center;
+    border-radius: 50%;
+    background: theme.$accent-background;
+    color: theme.$accent-color;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .copy-details {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 8rem;
+    gap: 1rem;
+
+    @media (max-width: 575.98px) {
+      grid-template-columns: minmax(0, 1fr) 6.5rem;
+    }
+  }
+
+  // Checkbox layouts for both dialogs
+  .option-list {
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .option-control {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.8rem 1rem;
+    border: 1px solid theme.$surface-border;
+    border-radius: 0.6rem;
+    cursor: pointer;
+
+    .form-check-input {
+      float: none;
+      flex-shrink: 0;
+      margin: 0;
+
+      &:active {
+        filter: none;
+      }
+
+      // Keep Bootstrap's focus ring when navigating with the keyboard.
+      &:focus:not(:focus-visible) {
+        box-shadow: none;
+      }
+    }
+
+    &:hover {
+      background: theme.$option-hover-background;
+      border-color: theme.$option-hover-border;
+    }
+
+    strong,
+    small {
+      display: block;
+    }
+
+    strong {
+      font-size: 0.875rem;
+    }
+
+    small {
+      margin-top: 0.15rem;
+      color: theme.$text-muted;
+      font-size: 0.75rem;
+    }
+  }
+}

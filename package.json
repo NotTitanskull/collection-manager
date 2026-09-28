@@ -1,14 +1,12 @@
 {
-  "name": "collection-manager-cdn",
+  "name": "collection-manager",
   "version": "1.0.0",
   "private": true,
-  "description": "Vue 3 CDN interface prototype; npm is only used to compile Sass.",
+  "description": "Vue 3 collection manager with binders and trade comparisons, built with Vite and Sass.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "styles": "sass --no-source-map scss/main.scss css/main.css",
-    "styles:watch": "sass --watch --no-source-map scss/main.scss:css/main.css"
+    "preview": "vite preview"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.9",

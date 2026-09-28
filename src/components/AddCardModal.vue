@@ -1,14 +1,41 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import CardSearch from "./CardSearch.vue";
+import BinderPicker from "./BinderPicker.vue";
 import { collectionCards } from "../stores/collection.js";
 
+const conditions = [
+  "Near Mint",
+  "Lightly Played",
+  "Moderately Played",
+  "Heavily Played",
+  "Damaged",
+];
+
+function createCopyRow() {
+  return {
+    id: crypto.randomUUID(),
+    condition: "Near Mint",
+    quantity: 1,
+  };
+}
+
+function addCopyRow() {
+  draft.value.copies.push(createCopyRow());
+}
+
+function removeCopyRow(id) {
+  if (draft.value.copies.length <= 1) return;
+
+  draft.value.copies = draft.value.copies.filter((copy) => copy.id !== id);
+}
+
 const draft = ref({
+  binderIds: [],
   name: "",
   printingId: "",
-  condition: "Near Mint",
-  quantity: 1,
-  isFoil: false,
+  copies: [createCopyRow()],
+  finish: "",
   favorite: false,
   trade: false,
 });
@@ -23,7 +50,7 @@ function clearPrintings() {
   printingRequest?.abort();
   printings.value = [];
   draft.value.printingId = "";
-  draft.value.isFoil = false;
+  draft.value.finish = "";
   loadingPrintings.value = false;
   printingError.value = "";
 }
@@ -84,31 +111,26 @@ const selectedPrinting = computed(() =>
   printings.value.find((printing) => printing.id === draft.value.printingId),
 );
 
-const foilLocked = computed(() => {
-  const finishes = selectedPrinting.value?.finishes ?? [];
+const finishLabels = { nonfoil: "Nonfoil", foil: "Foil", etched: "Etched foil" };
+const finishes = computed(() => (selectedPrinting.value?.finishes ?? []).filter((finish) => finish in finishLabels));
 
-  return !(finishes.includes("foil") && finishes.includes("nonfoil"));
-});
-
-watch(selectedPrinting, (printing) => {
-  const finishes = printing?.finishes ?? [];
-
-  draft.value.isFoil = finishes.includes("foil") && !finishes.includes("nonfoil");
+watch(selectedPrinting, () => {
+  draft.value.finish = finishes.value[0] ?? "";
 });
 
 const modalElement = ref(null);
 
 const canAddCard = computed(() => {
   const printing = selectedPrinting.value;
-  const finish = draft.value.isFoil ? "foil" : "nonfoil";
+  const finish = draft.value.finish;
 
   return (
     !loadingPrintings.value &&
-    printing?.finishes.includes(finish) &&
-    Number.isInteger(draft.value.quantity) &&
-    draft.value.quantity > 0 &&
-    ["Near Mint", "Lightly Played", "Moderately Played", "Heavily Played", "Damaged"].includes(
-      draft.value.condition,
+    Boolean(printing?.finishes?.includes(finish)) &&
+    draft.value.copies.length > 0 &&
+    draft.value.copies.every(
+      (copy) =>
+        conditions.includes(copy.condition) && Number.isInteger(copy.quantity) && copy.quantity > 0,
     )
   );
 });
@@ -117,9 +139,17 @@ function addCard() {
   if (!canAddCard.value) return;
 
   const printing = selectedPrinting.value;
-  const price = draft.value.isFoil ? printing.prices?.usd_foil : printing.prices?.usd;
+  const priceKey = { nonfoil: "usd", foil: "usd_foil", etched: "usd_etched" }[draft.value.finish];
+  const price = printing.prices?.[priceKey];
 
-  collectionCards.value.push({
+  const quantitiesByCondition = new Map();
+
+  for (const copy of draft.value.copies) {
+    const quantity = quantitiesByCondition.get(copy.condition) ?? 0;
+    quantitiesByCondition.set(copy.condition, quantity + copy.quantity);
+  }
+
+  const entries = Array.from(quantitiesByCondition, ([condition, quantity]) => ({
     entryId: crypto.randomUUID(),
     scryfallId: printing.id,
     name: printing.name,
@@ -127,25 +157,28 @@ function addCard() {
     printing:
       `${printing.set_name} — ${printing.set.toUpperCase()}` + ` #${printing.collector_number}`,
     image: printing.image_uris?.normal ?? printing.card_faces?.[0]?.image_uris?.normal ?? "",
-    condition: draft.value.condition,
-    quantity: draft.value.quantity,
-    isFoil: draft.value.isFoil,
+    condition,
+    quantity,
+    finish: draft.value.finish,
+    isFoil: draft.value.finish !== "nonfoil",
     favorite: draft.value.favorite,
     trade: draft.value.trade,
-    binderIds: [],
+    binderIds: [...draft.value.binderIds],
     price: price == null ? null : Number(price),
-  });
+  }));
+
+  collectionCards.value.push(...entries);
 
   window.bootstrap.Modal.getInstance(modalElement.value)?.hide();
 
   clearPrintings();
 
   draft.value = {
+    binderIds: [],
     name: "",
     printingId: "",
-    condition: "Near Mint",
-    quantity: 1,
-    isFoil: false,
+    copies: [createCopyRow()],
+    finish: "",
     favorite: false,
     trade: false,
   };
@@ -220,35 +253,54 @@ onBeforeUnmount(clearPrintings);
             </div>
           </section>
           <section class="form-section">
-            <div class="section-heading">
-              <span class="section-number">2</span>
-              <div>
-                <h3>Copy details</h3>
-                <p>Describe the copies being added to the collection.</p>
+            <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-3">
+              <div class="section-heading mb-0">
+                <span class="section-number">2</span>
+                <div>
+                  <h3>Copy details</h3>
+                  <p>Add a separate row for each condition you own.</p>
+                </div>
               </div>
+
+              <button type="button" class="btn btn-outline-primary btn-sm" @click="addCopyRow">
+                + Add condition
+              </button>
             </div>
 
-            <div class="row g-3">
-              <div class="col-8">
-                <label for="add-card-condition" class="form-label">Condition</label>
-                <select id="add-card-condition" v-model="draft.condition" class="form-select">
-                  <option>Near Mint</option>
-                  <option>Lightly Played</option>
-                  <option>Moderately Played</option>
-                  <option>Heavily Played</option>
-                  <option>Damaged</option>
-                </select>
-              </div>
+            <div class="d-grid gap-3">
+              <div v-for="(copy, index) in draft.copies" :key="copy.id" class="copy-fields">
+                <div>
+                  <label :for="`copy-condition-${copy.id}`" class="form-label">Condition</label>
+                  <select
+                    :id="`copy-condition-${copy.id}`"
+                    v-model="copy.condition"
+                    class="form-select">
+                    <option v-for="condition in conditions" :key="condition" :value="condition">
+                      {{ condition }}
+                    </option>
+                  </select>
+                </div>
 
-              <div class="col-4">
-                <label for="add-card-quantity" class="form-label">Quantity</label>
-                <input
-                  id="add-card-quantity"
-                  v-model.number="draft.quantity"
-                  type="number"
-                  class="form-control"
-                  min="1"
-                  step="1" />
+                <div>
+                  <label :for="`copy-quantity-${copy.id}`" class="form-label">Quantity</label>
+                  <input
+                    :id="`copy-quantity-${copy.id}`"
+                    v-model.number="copy.quantity"
+                    type="number"
+                    class="form-control"
+                    min="1"
+                    step="1" />
+                </div>
+
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary copy-remove"
+                  :disabled="draft.copies.length === 1"
+                  :aria-label="`Remove condition row ${index + 1}`"
+                  title="Remove condition row"
+                  @click="removeCopyRow(copy.id)">
+                  <span aria-hidden="true">×</span>
+                </button>
               </div>
             </div>
           </section>
@@ -261,19 +313,18 @@ onBeforeUnmount(clearPrintings);
               </div>
             </div>
 
+            <div class="mb-3">
+              <BinderPicker v-model="draft.binderIds" />
+            </div>
+
             <div class="option-list">
-              <label class="option-control" for="add-card-foil">
-                <span>
-                  <strong>Foil</strong>
-                  <small>Finish choices depend on the selected printing.</small>
-                </span>
-                <input
-                  id="add-card-foil"
-                  v-model="draft.isFoil"
-                  type="checkbox"
-                  class="form-check-input"
-                  :disabled="foilLocked" />
-              </label>
+              <div>
+                <label for="add-card-finish" class="form-label">Finish</label>
+                <select id="add-card-finish" v-model="draft.finish" class="form-select" :disabled="finishes.length < 2">
+                  <option v-if="!finishes.length" value="">Select a printing first</option>
+                  <option v-for="finish in finishes" :key="finish" :value="finish">{{ finishLabels[finish] }}</option>
+                </select>
+              </div>
 
               <label class="option-control" for="add-card-favorite">
                 <span>
@@ -315,3 +366,25 @@ onBeforeUnmount(clearPrintings);
     </div>
   </div>
 </template>
+
+<style scoped lang="scss">
+.copy-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(5rem, 7rem) 2.75rem;
+  align-items: end;
+  gap: 0.75rem;
+
+  > div {
+    min-width: 0;
+  }
+
+  .copy-remove {
+    display: grid;
+    place-items: center;
+    min-height: 2.75rem;
+    padding: 0;
+    font-size: 1.4rem;
+    line-height: 1;
+  }
+}
+</style>

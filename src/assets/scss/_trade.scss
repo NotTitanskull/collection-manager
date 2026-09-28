@@ -1,0 +1,153 @@
+@use "variables" as theme;
+
+.trade-page {
+  .trade-workspace {
+    display: grid;
+    gap: 1.5rem;
+  }
+  .trade-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    background: theme.$surface-background;
+    border: 1px solid theme.$surface-border;
+    border-radius: 0.75rem;
+  }
+  .trade-eyebrow {
+    margin-bottom: 0.4rem;
+    color: theme.$accent-color;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+  .trade-summary h2 {
+    margin-bottom: 0.35rem;
+    font-size: 1.25rem;
+  }
+  .trade-balance {
+    display: grid;
+    min-width: 8.5rem;
+    padding: 0.75rem 1rem;
+    text-align: right;
+    border-left: 4px solid theme.$success-color;
+  }
+  .trade-balance strong {
+    font-size: 1.4rem;
+  }
+  .trade-balance small {
+    color: theme.$text-muted;
+  }
+  .trade-balance--close {
+    border-color: theme.$warning-color;
+  }
+  .trade-balance--gap {
+    border-color: theme.$favorite-color;
+  }
+  .trade-balance-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+  .trade-columns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+  .trade-column {
+    min-width: 0;
+    padding: 1.25rem;
+    border: 1px solid theme.$surface-border;
+    border-radius: 0.75rem;
+  }
+  .trade-column-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid theme.$surface-border;
+  }
+  .trade-column-heading h3 {
+    margin: 0;
+    font-size: 1.05rem;
+  }
+  .trade-column-heading p {
+    margin: 0.25rem 0 0;
+    color: theme.$text-muted;
+    font-size: 0.8rem;
+  }
+  .trade-column-heading > strong {
+    color: theme.$accent-color;
+    white-space: nowrap;
+  }
+  .trade-card-list {
+    margin: 0;
+  }
+  .trade-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid theme.$subtle-border;
+  }
+  .trade-card-image {
+    width: 3.5rem;
+    aspect-ratio: 5 / 7;
+    flex-shrink: 0;
+    object-fit: contain;
+    border-radius: 0.25rem;
+  }
+  .trade-card-details {
+    min-width: 0;
+    flex: 1;
+  }
+  .trade-card-details h4 {
+    margin: 0;
+    font-size: 0.9rem;
+  }
+  .trade-card-details p,
+  .trade-card-details span {
+    display: block;
+    margin: 0.25rem 0 0;
+    color: theme.$text-muted;
+    font-size: 0.75rem;
+  }
+  .trade-card-value {
+    flex-shrink: 0;
+    text-align: right;
+  }
+  .trade-card-value strong {
+    display: block;
+    font-size: 0.9rem;
+  }
+  .trade-card-value .btn {
+    padding: 0;
+    font-size: 0.75rem;
+  }
+  .trade-add-button {
+    width: 100%;
+    margin-top: 1rem;
+  }
+  .trade-disclaimer {
+    margin: 0;
+    color: theme.$text-muted;
+    font-size: 0.75rem;
+  }
+
+  @media (max-width: 767.98px) {
+    .trade-summary {
+      align-items: stretch;
+      flex-direction: column;
+    }
+    .trade-balance {
+      text-align: left;
+      border-top: 1px solid theme.$surface-border;
+      border-left: 0;
+      border-bottom: 0;
+    }
+    .trade-columns {
+      grid-template-columns: 1fr;
+    }
+  }
+}
