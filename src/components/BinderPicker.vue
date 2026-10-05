@@ -1,4 +1,5 @@
 <script setup>
+// Reusable checkbox group. Its v-model is an array of selected binder IDs.
 import { binders } from "../stores/binders.js";
 
 const selectedIds = defineModel({
@@ -31,6 +32,7 @@ const selectedIds = defineModel({
 </template>
 
 <style scoped lang="scss">
+// Limit a long binder list’s height while allowing the choices to scroll.
 .binder-picker {
   min-width: 0;
   margin: 0;

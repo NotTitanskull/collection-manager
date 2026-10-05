@@ -1,14 +1,18 @@
 <script setup>
+// Collection page: derives the visible list and controls the add/manage dialogs.
 import { computed, ref } from "vue";
 import { collectionCards } from "../stores/collection.js";
+import FloatingAddButton from "../components/FloatingAddButton.vue";
 import CollectionEntry from "../components/CollectionEntry.vue";
-import AddCardModal from "../components/AddCardModal.vue";
-import ManageCardModal from "../components/ManageCardModal.vue";
+import AddCardModal from "../components/modals/AddCardModal.vue";
+import ManageCardModal from "../components/modals/ManageCardModal.vue";
 
 const search = ref("");
 const sortOrder = ref("name-asc");
 const selectedCard = ref(null);
+const addingCard = ref(false);
 
+// Computed lists update when search, sort, or saved data changes. filter returns a new array.
 const filteredCards = computed(() => {
   const query = search.value.trim().toLowerCase();
 
@@ -21,22 +25,12 @@ const filteredCards = computed(() => {
 </script>
 
 <template>
-  <section class="collection-page">
-    <div class="d-flex align-items-center justify-content-between gap-3">
-      <h1>My Collection</h1>
-
-      <button
-        type="button"
-        class="btn btn-primary"
-        data-bs-toggle="modal"
-        data-bs-target="#add-card-modal">
-        + Add Card
-      </button>
-    </div>
+  <section class="collection-page page-with-add-action">
+    <h1>My Collection</h1>
     <p>Browse and manage every card in your collection.</p>
 
-    <div class="row g-2 mt-4">
-      <div class="col-12 col-md-8">
+    <div class="row g-2 mt-3">
+      <div class="col-6 col-sm-8">
         <label for="collection-search" class="visually-hidden">Search your collection</label>
         <input
           id="collection-search"
@@ -46,7 +40,7 @@ const filteredCards = computed(() => {
           placeholder="Search cards..." />
       </div>
 
-      <div class="col-12 col-md-4">
+      <div class="col-6 col-sm-4">
         <label for="collection-sort" class="visually-hidden">Sort your collection</label>
         <select id="collection-sort" v-model="sortOrder" class="form-select">
           <option value="name-asc">Name: A–Z</option>
@@ -55,7 +49,7 @@ const filteredCards = computed(() => {
       </div>
     </div>
 
-    <ul class="list-unstyled mt-4">
+    <ul class="list-unstyled mt-3">
       <CollectionEntry
         v-for="entry in filteredCards"
         :key="entry.entryId"
@@ -65,7 +59,8 @@ const filteredCards = computed(() => {
 
     <p v-if="filteredCards.length === 0" class="text-secondary">No cards found.</p>
 
-    <AddCardModal />
-    <ManageCardModal :card="selectedCard" />
+    <FloatingAddButton label="Add Card" @click="addingCard = true" />
+    <AddCardModal v-if="addingCard" @close="addingCard = false" />
+    <ManageCardModal v-if="selectedCard" :card="selectedCard" @close="selectedCard = null" />
   </section>
 </template>

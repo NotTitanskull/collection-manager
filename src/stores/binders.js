@@ -1,7 +1,10 @@
+// Shared reactive state: importing this module reuses the same ref across components.
 import { ref, watch } from "vue";
 
+// Browser storage is scoped to this origin (protocol, host, and port).
 const STORAGE_KEY = "collection-manager:binders";
 
+// Restore saved data, falling back when storage is absent, unreadable, or not an array.
 function loadBinders() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -18,6 +21,7 @@ function loadBinders() {
 
 export const binders = ref(loadBinders());
 
+// deep observes nested field edits; immediate also saves the initial state.
 watch(
   binders,
   (value) => {

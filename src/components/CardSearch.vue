@@ -1,4 +1,5 @@
 <script setup>
+// Reusable Scryfall autocomplete. v-model holds typed text; select emits a chosen name.
 import { onBeforeUnmount, ref } from "vue";
 
 const name = defineModel({ type: String, required: true });
@@ -12,6 +13,7 @@ const highlighted = ref(-1);
 let timer;
 let controller;
 
+/** Cancel pending work so an outdated response cannot reopen the suggestions. */
 function closeSuggestions() {
   clearTimeout(timer);
   controller?.abort();
@@ -20,6 +22,7 @@ function closeSuggestions() {
   highlighted.value = -1;
 }
 
+/** Update the model immediately, but wait briefly before requesting suggestions. */
 function updateSearch(event) {
   closeSuggestions();
   notice.value = "";
@@ -32,6 +35,7 @@ function updateSearch(event) {
   timer = setTimeout(() => fetchSuggestions(query), 300);
 }
 
+/** Request matching names; AbortController lets a newer search cancel this one. */
 async function fetchSuggestions(query) {
   const request = new AbortController();
   controller = request;
@@ -67,6 +71,7 @@ async function fetchSuggestions(query) {
   }
 }
 
+/** Commit a suggestion and notify the parent to load that card’s printings. */
 function selectCard(suggestion) {
   closeSuggestions();
   notice.value = "";
@@ -74,6 +79,15 @@ function selectCard(suggestion) {
   emit("select", suggestion);
 }
 
+/** Consume Escape only for an open suggestion list; otherwise the dialog can close. */
+function dismissSuggestions(event) {
+  if (loading.value || suggestions.value.length) {
+    event.stopPropagation();
+    closeSuggestions();
+  }
+}
+
+/** Move the keyboard highlight, wrapping at either end of the suggestion list. */
 function moveSuggestion(direction) {
   const count = suggestions.value.length;
   if (!count) return;
@@ -81,6 +95,7 @@ function moveSuggestion(direction) {
   highlighted.value = (highlighted.value + direction + count) % count;
 }
 
+/** Select the highlighted suggestion, or the first result if none is highlighted. */
 function selectHighlighted() {
   const suggestion = suggestions.value[highlighted.value] ?? suggestions.value[0];
 
@@ -112,7 +127,7 @@ onBeforeUnmount(closeSuggestions);
       @keydown.down.prevent="moveSuggestion(1)"
       @keydown.up.prevent="moveSuggestion(-1)"
       @keydown.enter.prevent="selectHighlighted"
-      @keydown.escape.stop="closeSuggestions" />
+      @keydown.escape="dismissSuggestions" />
 
     <div v-if="loading || suggestions.length" class="card-suggestions">
       <p v-if="loading" class="card-suggestions-status" role="status">Searching Scryfall…</p>
@@ -146,6 +161,7 @@ onBeforeUnmount(closeSuggestions);
 </template>
 
 <style scoped lang="scss">
+// Position the autocomplete list above nearby content and show the keyboard highlight.
 @use "../assets/scss/variables" as theme;
 
 .card-suggestions {
@@ -179,7 +195,9 @@ onBeforeUnmount(closeSuggestions);
   color: theme.$text-color;
   font-size: 0.9rem;
   text-align: left;
-  transition: background-color 120ms ease, color 120ms ease;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
 }
 .card-suggestion:hover,
 .card-suggestion.is-highlighted {

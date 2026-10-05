@@ -1,3 +1,4 @@
+// Trade page structure. TradeView’s scoped styles add direction and comparison colors.
 @use "variables" as theme;
 
 .trade-page {
@@ -49,6 +50,7 @@
     font-size: 0.75rem;
     font-weight: 700;
   }
+  // minmax(0, 1fr) lets each equal-width column shrink around long card text.
   .trade-columns {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -91,6 +93,7 @@
     padding: 1rem 0;
     border-bottom: 1px solid theme.$subtle-border;
   }
+  // Preserve card proportions without stretching or cropping the artwork.
   .trade-card-image {
     width: 3.5rem;
     aspect-ratio: 5 / 7;
@@ -135,6 +138,7 @@
     font-size: 0.75rem;
   }
 
+  // Stack both sides vertically when a two-column comparison would be cramped.
   @media (max-width: 767.98px) {
     .trade-summary {
       align-items: stretch;

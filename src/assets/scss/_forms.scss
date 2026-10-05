@@ -1,3 +1,4 @@
+// Shared form styling, restricted to descendants of .dialog-form.
 @use "variables" as theme;
 
 // Shared dialog form sections
@@ -41,6 +42,7 @@
     }
   }
 
+  // Center the step label without relying on text padding.
   .section-number {
     display: grid;
     flex: 0 0 1.75rem;
@@ -54,6 +56,7 @@
     font-weight: 700;
   }
 
+  // Condition takes the remaining width; quantity keeps a compact, predictable width.
   .copy-details {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 8rem;
@@ -64,7 +67,7 @@
     }
   }
 
-  // Checkbox layouts for both dialogs
+  // Checkbox layouts shared by card forms and binder selection
   .option-list {
     display: grid;
     gap: 0.65rem;
@@ -80,6 +83,7 @@
     border-radius: 0.6rem;
     cursor: pointer;
 
+    // Undo Bootstrap’s floating checkbox layout inside our flex-based option labels.
     .form-check-input {
       float: none;
       flex-shrink: 0;

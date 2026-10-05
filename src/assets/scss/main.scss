@@ -1,6 +1,12 @@
+// Shared styles compiled by Vite. Component-only rules live in scoped Vue style blocks.
 @use "navigation";
 @use "forms";
 @use "trade";
+
+// Keep the last page content clear of the floating Add action.
+.page-with-add-action {
+  padding-bottom: 5rem;
+}
 
 // Hide any cloaked content until Vue mounts.
 [v-cloak] {

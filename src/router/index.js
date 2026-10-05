@@ -4,6 +4,7 @@ import TradeView from "../views/TradeView.vue";
 import BindersView from "../views/BindersView.vue";
 
 const router = createRouter({
+  // Hash routes work on static hosting without server-side URL rewrites.
   history: createWebHashHistory(import.meta.env.BASE_URL),
   linkActiveClass: "is-active",
   routes: [

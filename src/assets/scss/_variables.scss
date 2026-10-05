@@ -1,7 +1,9 @@
 // Shared theme values. This module emits no CSS.
+// Surfaces and borders shared by panels, dialogs, and navigation.
 $surface-background: #f5f7fb;
 $surface-color: #ffffff;
 $surface-border: #dfe5ef;
+// Text and interaction colors; consumers access these as theme.$variable-name.
 $text-muted: #6c757d;
 $accent-color: #2856c5;
 $accent-background: #e8efff;
@@ -13,5 +15,6 @@ $favorite-color: #dc3545;
 $text-color: #212529;
 $subtle-border: #edf0f5;
 $suggestion-border: #ced7e6;
+// Status colors available to trade-related styles.
 $success-color: #198754;
 $warning-color: #f0ad4e;

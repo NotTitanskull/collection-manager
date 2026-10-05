@@ -1,3 +1,24 @@
+/**
+ * One owned collection entry, which can represent several identical copies.
+ * @typedef {Object} CollectionCard
+ * @property {string} entryId Unique owned row ID, used for edits and Vue list keys.
+ * @property {string} scryfallId Scryfall printing ID; several owned rows may share it.
+ * @property {string} name Card name.
+ * @property {string} type Card type line.
+ * @property {string} printing Human-readable set and collector number.
+ * @property {string} image Card image URL.
+ * @property {string} condition Condition shared by the copies in this entry.
+ * @property {number} quantity Positive whole number of copies.
+ * @property {'nonfoil'|'foil'|'etched'} [finish] Explicit finish on newer entries.
+ * @property {boolean} isFoil Legacy finish flag retained for older saved entries.
+ * @property {boolean} favorite Membership in the automatic Favorites binder.
+ * @property {boolean} trade Whether the entry is marked available for trade.
+ * @property {string[]} binderIds Custom binder memberships.
+ * @property {number|null} [purchasePrice] Optional purchase cost per copy in USD; null means not recorded.
+ * @property {number|null} [price] Legacy saved estimate; not used as a purchase cost or current market price.
+ */
+
+/** @type {CollectionCard[]} */
 // Initial collection entries. Prices are sample estimates.
 export const sampleCards = [
   {

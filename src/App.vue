@@ -1,7 +1,7 @@
 <template>
   <div class="app-layout">
     <header class="site-header border-bottom bg-white">
-      <div class="container header-content">
+      <div class="container-lg px-3 px-sm-4 header-content">
         <RouterLink class="site-brand" to="/collection">MTG Collection</RouterLink>
 
         <nav class="desktop-nav d-none d-md-flex" aria-label="Main navigation">
@@ -12,11 +12,12 @@
       </div>
     </header>
 
-    <main class="container py-4">
+    <main class="container-lg px-3 px-sm-4 py-3 py-lg-4">
+      <!-- The matched page renders here; navigation and footer remain shared. -->
       <RouterView />
     </main>
 
-    <footer class="container py-3 border-top">
+    <footer class="container-lg px-3 px-sm-4 py-3 border-top">
       <small>MTG Collection Manager</small>
     </footer>
 

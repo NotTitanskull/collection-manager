@@ -1,4 +1,5 @@
 <script setup>
+// Presentational row: receives a card prop and emits manage when the user opens it.
 defineProps({
   card: {
     type: Object,
@@ -15,8 +16,6 @@ const emit = defineEmits(["manage"]);
       type="button"
       class="collection-entry"
       :aria-label="`Manage ${card.name}`"
-      data-bs-toggle="modal"
-      data-bs-target="#manage-card-modal"
       @click="emit('manage', card)">
       <img class="card-thumbnail" :src="card.image" :alt="''" />
 
@@ -28,7 +27,8 @@ const emit = defineEmits(["manage"]);
         </span>
 
         <span class="small text-secondary mb-2">
-          {{ card.printing }} · {{ card.finish === "etched" ? "Etched foil" : card.isFoil ? "Foil" : "Nonfoil" }}
+          {{ card.printing }} ·
+          {{ card.finish === "etched" ? "Etched foil" : card.isFoil ? "Foil" : "Nonfoil" }}
         </span>
 
         <span class="d-flex align-items-center gap-2">
@@ -41,6 +41,7 @@ const emit = defineEmits(["manage"]);
 </template>
 
 <style scoped lang="scss">
+// Row-specific presentation and interaction feedback, isolated from other buttons.
 @use "../assets/scss/variables" as theme;
 
 .collection-row {
