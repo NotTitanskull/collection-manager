@@ -3,8 +3,8 @@
 import { computed, ref } from "vue";
 import { marketPrice, marketState, marketNote, refreshMarketPrice } from "../services/marketPrices.js";
 import { collectionCards } from "../stores/collection.js";
-import TradeReceiveModal from "../components/modals/TradeReceiveModal.vue";
-import TradePickerModal from "../components/modals/TradePickerModal.vue";
+import TradeReceiveModal from "../components/trade/TradeReceiveModal.vue";
+import TradePickerModal from "../components/trade/TradePickerModal.vue";
 
 const receivedCards = ref([]);
 const receivedPricedCards = computed(() => receivedCards.value.map(card => ({ ...card, price: marketPrice(card) })));

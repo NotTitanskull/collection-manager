@@ -3,11 +3,15 @@
 import { computed, ref, watch } from "vue";
 import { binders } from "../stores/binders.js";
 import { collectionCards } from "../stores/collection.js";
-import FloatingAddButton from "../components/FloatingAddButton.vue";
-import CollectionEntry from "../components/CollectionEntry.vue";
-import ManageCardModal from "../components/modals/ManageCardModal.vue";
-import BinderModal from "../components/modals/BinderModal.vue";
-import BinderCardsModal from "../components/modals/BinderCardsModal.vue";
+import FloatingAddButton from "../components/ui/FloatingAddButton.vue";
+import CollectionEntry from "../components/cards/CollectionEntry.vue";
+import BinderQuantityModal from "../components/binders/BinderQuantityModal.vue";
+import { assignedQuantity, binderAssignments, totalAssigned } from "../utils/binderQuantities.js";
+import ManageCardModal from "../components/cards/ManageCardModal.vue";
+import BinderModal from "../components/binders/BinderModal.vue";
+import BinderOptions from "../components/binders/BinderOptions.vue";
+import DeleteBinderModal from "../components/binders/DeleteBinderModal.vue";
+import BinderCardsModal from "../components/binders/BinderCardsModal.vue";
 
 // Favorites is derived from card.favorite; it is not a separate saved copy of cards.
 const favoritesBinder = {
@@ -20,6 +24,7 @@ const favoritesBinder = {
 const displayedBinders = computed(() => [favoritesBinder, ...binders.value]);
 const selectedBinder = ref(null);
 const editingBinder = ref(false);
+const deletingBinder = ref(null);
 const choosingCards = ref(false);
 const openBinderId = ref(null);
 const openBinder = computed(() =>
@@ -35,7 +40,7 @@ watch(openBinderId, () => {
 
 // Automatic Favorites uses a flag; custom binders use membership IDs.
 function containsCard(binder, card) {
-  return binder.automatic ? card.favorite : card.binderIds?.includes(binder.id);
+  return binder.automatic ? card.favorite : assignedQuantity(card, binder.id) > 0;
 }
 const binderCounts = computed(() =>
   Object.fromEntries(
@@ -43,7 +48,7 @@ const binderCounts = computed(() =>
       binder.id,
       collectionCards.value
         .filter((card) => containsCard(binder, card))
-        .reduce((sum, card) => sum + card.quantity, 0),
+        .reduce((sum, card) => sum + (binder.automatic ? card.quantity : assignedQuantity(card, binder.id)), 0),
     ]),
   ),
 );
@@ -74,33 +79,28 @@ function openAddDialog() {
 <template>
   <section class="binder-page page-with-add-action">
     <div v-if="openBinder">
-      <div class="d-flex flex-wrap align-items-baseline gap-2 mb-2">
-        <h1 class="binder-heading mb-0">{{ openBinder.name }}</h1>
-        <span class="small text-secondary text-nowrap">
-          {{ binderCounts[openBinder.id] }}
-          {{ binderCounts[openBinder.id] === 1 ? "card" : "cards" }}
-        </span>
+      <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
+        <div class="binder-title-group d-flex flex-wrap align-items-baseline gap-2">
+          <h1 class="binder-heading mb-0">{{ openBinder.name }}</h1>
+          <span class="small text-secondary text-nowrap">
+            {{ binderCounts[openBinder.id] }}
+            {{ binderCounts[openBinder.id] === 1 ? "card" : "cards" }}
+          </span>
+        </div>
       </div>
       <p v-if="openBinder.description" class="text-secondary mb-3">
         {{ openBinder.description }}
       </p>
-      <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
         <button
           type="button"
           class="btn btn-outline-secondary binder-back-button"
           @click="openBinderId = null">
           ← Back to binders
         </button>
-        <button
-          v-if="!openBinder.automatic"
-          type="button"
-          class="btn btn-outline-secondary"
-          @click="
-            selectedBinder = openBinder;
-            editingBinder = true;
-          ">
-          Edit Binder
-        </button>
+        <BinderOptions v-if="!openBinder.automatic" class="flex-shrink-0 ms-auto" :binder-name="openBinder.name" settings
+          @edit="selectedBinder = openBinder; editingBinder = true"
+          @delete="deletingBinder = openBinder" />
       </div>
       <div v-if="binderCards.length" class="row g-2 mb-3">
         <div class="col-6 col-sm-8">
@@ -120,11 +120,14 @@ function openAddDialog() {
           </select>
         </div>
       </div>
+      <p v-if="!openBinder.automatic && binderCards.some(card => totalAssigned(binderAssignments(card)) > card.quantity)"
+        class="alert alert-warning" role="alert">Some older entries counted all copies in multiple binders. Review their binder quantities in Manage Card on the Collection page to split the copies you own.</p>
       <ul v-if="visibleCards.length" class="list-unstyled">
         <CollectionEntry
           v-for="card in visibleCards"
           :key="card.entryId"
           :card="card"
+          :displayed-quantity="openBinder.automatic ? null : assignedQuantity(card, openBinder.id)"
           @manage="selectedCard = $event" />
       </ul>
       <p v-else class="text-secondary border rounded p-4">
@@ -140,7 +143,7 @@ function openAddDialog() {
         {{
           openBinder.automatic
             ? "To remove a favorite, open the card and uncheck Favorite."
-            : "To remove a card from this binder, open it and uncheck this binder, then save. The card stays in your collection."
+            : "Open a card to change how many copies are in this binder. Set the binder quantity to 0 to remove it; your owned quantity stays unchanged."
         }}
       </p>
     </div>
@@ -151,9 +154,17 @@ function openAddDialog() {
         <div v-for="binder in displayedBinders" :key="binder.id" class="col-12 col-md-6 col-lg-4">
           <article class="card h-100 binder-card" :class="`binder-color-${binder.color}`">
             <div class="card-body d-flex flex-column">
-              <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-2">
-                <h2 class="h5 mb-0">{{ binder.name }}</h2>
+              <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                <h2 class="h5 mb-0 binder-tile-title">
+                  <button type="button" class="btn btn-link stretched-link text-reset text-decoration-none p-0 binder-open-button"
+                    :aria-label="`Open binder ${binder.name}`" @click="openBinderId = binder.id">
+                    {{ binder.name }}
+                  </button>
+                </h2>
                 <span v-if="binder.automatic" class="badge text-bg-light">Automatic</span>
+                <BinderOptions v-else class="flex-shrink-0 binder-tile-options" :binder-name="binder.name" icon-only
+                  @edit="selectedBinder = binder; editingBinder = true"
+                  @delete="deletingBinder = binder" />
               </div>
               <p class="small text-secondary mb-2">
                 {{ binderCounts[binder.id] }}
@@ -162,27 +173,6 @@ function openAddDialog() {
               <p v-if="binder.description" class="text-secondary mb-0">
                 {{ binder.description }}
               </p>
-              <div class="d-flex flex-wrap gap-2 mt-auto pt-3">
-                <button
-                  type="button"
-                  class="btn btn-primary btn-sm"
-                  :aria-label="`Open binder ${binder.name}`"
-                  @click="openBinderId = binder.id">
-                  Open Binder
-                  <span aria-hidden="true">→</span>
-                </button>
-                <button
-                  v-if="!binder.automatic"
-                  type="button"
-                  class="btn btn-outline-secondary btn-sm"
-                  :aria-label="`Edit binder ${binder.name}`"
-                  @click="
-                    selectedBinder = binder;
-                    editingBinder = true;
-                  ">
-                  Edit Binder
-                </button>
-              </div>
             </div>
           </article>
         </div>
@@ -199,7 +189,12 @@ function openAddDialog() {
         editingBinder = false;
         selectedBinder = null;
       " />
-    <ManageCardModal v-if="selectedCard" :card="selectedCard" @close="selectedCard = null" />
+    <DeleteBinderModal v-if="deletingBinder" :binder="deletingBinder"
+      @close="deletingBinder = null"
+      @deleted="id => { if (openBinderId === id) openBinderId = null; deletingBinder = null; }" />
+    <BinderQuantityModal v-if="selectedCard && openBinder && !openBinder.automatic"
+      :card="selectedCard" :binder="openBinder" @close="selectedCard = null" />
+    <ManageCardModal v-if="selectedCard && openBinder?.automatic" :card="selectedCard" @close="selectedCard = null" />
     <BinderCardsModal v-if="choosingCards" :binder="openBinder" @close="choosingCards = false" />
   </section>
 </template>
@@ -213,11 +208,38 @@ function openAddDialog() {
 .binder-card {
   --binder-color: #2b59a2;
   border-top: 0.4rem solid var(--binder-color);
+  &:hover {
+    box-shadow: var(--bs-box-shadow-sm);
+  }
   &.binder-color-purple {
     --binder-color: #7553a1;
   }
   &.binder-color-green {
     --binder-color: #367d70;
   }
+}
+.binder-tile-title {
+  flex: 1;
+  min-width: 0;
+}
+.binder-title-group {
+  min-width: 0;
+}
+.binder-open-button {
+  font: inherit;
+  text-align: left;
+  border: 0;
+  &:focus-visible {
+    box-shadow: none;
+    &::after {
+      outline: 2px solid var(--bs-primary);
+      outline-offset: 2px;
+      border-radius: var(--bs-border-radius);
+    }
+  }
+}
+.binder-tile-options {
+  position: relative;
+  z-index: 2;
 }
 </style>

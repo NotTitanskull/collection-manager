@@ -2,10 +2,10 @@
 // Collection page: derives the visible list and controls the add/manage dialogs.
 import { computed, ref } from "vue";
 import { collectionCards } from "../stores/collection.js";
-import FloatingAddButton from "../components/FloatingAddButton.vue";
-import CollectionEntry from "../components/CollectionEntry.vue";
-import AddCardModal from "../components/modals/AddCardModal.vue";
-import ManageCardModal from "../components/modals/ManageCardModal.vue";
+import FloatingAddButton from "../components/ui/FloatingAddButton.vue";
+import CollectionEntry from "../components/cards/CollectionEntry.vue";
+import AddCardModal from "../components/cards/AddCardModal.vue";
+import ManageCardModal from "../components/cards/ManageCardModal.vue";
 
 const search = ref("");
 const sortOrder = ref("name-asc");

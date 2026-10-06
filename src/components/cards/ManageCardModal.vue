@@ -1,10 +1,12 @@
 <script setup>
 // Edits a copy of the selected entry so Cancel leaves the saved collection unchanged.
-import ModalWrapper from "./ModalWrapper.vue";
+import ModalWrapper from "../ui/ModalWrapper.vue";
 import { computed, ref, watch } from "vue";
 import { collectionCards } from "../../stores/collection.js";
 import { marketPrice, marketState, marketNote, refreshMarketPrice } from "../../services/marketPrices.js";
-import BinderPicker from "../BinderPicker.vue";
+import { binderAssignments, validAssignments, saveAssignments } from "../../utils/binderQuantities.js";
+import CardSummary from "./CardSummary.vue";
+import BinderPicker from "../binders/BinderPicker.vue";
 
 const props = defineProps({
   card: {
@@ -20,7 +22,7 @@ const purchasePrice = ref("");
 const favorite = ref(false);
 const trade = ref(false);
 const confirmingRemoval = ref(false);
-const binderIds = ref([]);
+const binderQuantities = ref({});
 
 const conditions = [
   "Near Mint",
@@ -36,10 +38,11 @@ const canSave = computed(
     conditions.includes(condition.value) &&
     Number.isInteger(quantity.value) &&
     quantity.value > 0 &&
-    (purchasePrice.value === "" || (Number.isFinite(purchasePrice.value) && purchasePrice.value >= 0)),
+    (purchasePrice.value === "" || (Number.isFinite(purchasePrice.value) && purchasePrice.value >= 0)) &&
+    validAssignments(binderQuantities.value, quantity.value),
 );
 
-// Copy the prop into editable fields; copy binderIds so checkboxes do not mutate saved data.
+// Copy the prop into editable fields; copy binder assignments so controls do not mutate saved data.
 function resetForm() {
   if (!props.card) return;
 
@@ -49,7 +52,7 @@ function resetForm() {
   favorite.value = Boolean(props.card.favorite);
   trade.value = Boolean(props.card.trade);
   confirmingRemoval.value = false;
-  binderIds.value = [...(props.card.binderIds ?? [])];
+  binderQuantities.value = binderAssignments(props.card);
 }
 
 // Find the owned entry by entryId and apply only the editable fields.
@@ -65,7 +68,7 @@ function saveChanges() {
   card.purchasePrice = purchasePrice.value === "" ? null : purchasePrice.value;
   card.favorite = favorite.value;
   card.trade = trade.value;
-  card.binderIds = [...binderIds.value];
+  saveAssignments(card, binderQuantities.value);
 
   emit("close");
 }
@@ -94,17 +97,7 @@ resetForm();
       </div>
 
       <div v-if="card" class="modal-body dialog-form">
-        <section class="form-section card-summary" aria-label="Selected card">
-          <img v-if="card.image" :src="card.image" :alt="card.name" />
-          <div>
-            <h3 class="h5 mb-1">{{ card.name }}</h3>
-            <p class="small text-secondary mb-1">{{ card.type }}</p>
-            <p class="small text-secondary mb-2">{{ card.printing }}</p>
-            <span class="badge text-bg-light">
-              {{ card.finish === "etched" ? "Etched foil" : card.isFoil ? "Foil" : "Nonfoil" }}
-            </span>
-          </div>
-        </section>
+        <CardSummary :card="card" />
 
         <section class="form-section" aria-labelledby="manage-copy-heading">
           <div class="section-heading">
@@ -123,7 +116,7 @@ resetForm();
               </select>
             </div>
             <div>
-              <label for="manage-quantity" class="form-label">Quantity</label>
+              <label for="manage-quantity" class="form-label">Copies owned</label>
               <input
                 id="manage-quantity"
                 v-model.number="quantity"
@@ -133,40 +126,41 @@ resetForm();
                 class="form-control" />
             </div>
           </div>
-          <div class="mt-3">
-            <BinderPicker v-model="binderIds" />
-          </div>
-          <div class="mt-3">
-            <label for="manage-purchase-price" class="form-label">Purchase price per copy (USD, optional)</label>
-            <div class="input-group">
-              <span class="input-group-text">$</span>
-              <input
-                id="manage-purchase-price"
-                v-model.number="purchasePrice"
-                type="number"
-                min="0"
-                step="0.01"
-                class="form-control"
-                placeholder="Not recorded" aria-describedby="purchase-price-help" />
+        </section>
+
+        <section class="form-section" aria-labelledby="manage-pricing-heading">
+          <div class="section-heading">
+            <div>
+              <h3 id="manage-pricing-heading">Pricing</h3>
+              <p>Your purchase cost and the current market estimate, per copy.</p>
             </div>
-            <p id="purchase-price-help" class="form-text mb-0">
-              Leave blank for cards from packs, gifts, or when the cost is unknown.
-            </p>
           </div>
-          <div class="mt-3">
-            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-              <div>
-                <strong class="d-block">Market estimate per copy</strong>
-                <span>{{ currentMarketPrice == null ? 'Unavailable' : '$' + currentMarketPrice.toFixed(2) }}</span>
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <label for="manage-purchase-price" class="form-label">Purchase price <span class="text-secondary small">(optional)</span></label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input id="manage-purchase-price" v-model.number="purchasePrice" type="number"
+                  min="0" step="0.01" class="form-control" placeholder="Not recorded"
+                  aria-describedby="purchase-price-help" />
               </div>
-              <button type="button" class="btn btn-outline-secondary btn-sm"
-                :disabled="marketState(card).status === 'loading'"
-                @click="refreshMarketPrice(card, { force: true })">Refresh price</button>
+              <p id="purchase-price-help" class="form-text mb-0">USD per copy. Leave blank for packs, gifts, or unknown costs.</p>
             </div>
-            <p class="form-text mb-0" role="status">
-              <span class="d-block">{{ marketNote(card) }}</span>
-              Estimates do not account for condition.
-            </p>
+            <div class="col-12 col-md-6">
+              <div class="bg-light rounded p-3 h-100">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                  <span class="text-secondary">Market estimate</span>
+                  <button type="button" class="btn btn-outline-secondary btn-sm"
+                    :disabled="marketState(card).status === 'loading'"
+                    @click="refreshMarketPrice(card, { force: true })">Refresh price</button>
+                </div>
+                <strong class="d-block fs-5 mt-2">{{ currentMarketPrice == null ? 'Unavailable' : '$' + currentMarketPrice.toFixed(2) }}</strong>
+                <p class="form-text mb-0" role="status">
+                  <span class="d-block">{{ marketNote(card) }}</span>
+                  Estimates do not account for condition.
+                </p>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -196,6 +190,9 @@ resetForm();
               </span>
               <input id="manage-trade" v-model="trade" type="checkbox" class="form-check-input" />
             </label>
+          </div>
+          <div class="border-top pt-3 mt-3">
+            <BinderPicker v-model="binderQuantities" :owned-quantity="quantity" />
           </div>
         </section>
 
@@ -237,23 +234,3 @@ resetForm();
     </div>
   </ModalWrapper>
 </template>
-
-<style scoped lang="scss">
-// Keep the selected card preview and its identifying text together.
-.card-summary {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-
-  img {
-    width: 5rem;
-    flex-shrink: 0;
-    border-radius: 0.375rem;
-  }
-
-  > div {
-    min-width: 0;
-    overflow-wrap: anywhere;
-  }
-}
-</style>

@@ -162,7 +162,7 @@ onBeforeUnmount(closeSuggestions);
 
 <style scoped lang="scss">
 // Position the autocomplete list above nearby content and show the keyboard highlight.
-@use "../assets/scss/variables" as theme;
+@use "../../assets/scss/variables" as theme;
 
 .card-suggestions {
   position: relative;

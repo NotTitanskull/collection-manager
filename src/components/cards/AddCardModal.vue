@@ -1,9 +1,10 @@
 <script setup>
 // Builds a temporary draft, looks up a printing, then saves owned entries to the collection.
-import ModalWrapper from './ModalWrapper.vue';
+import ModalWrapper from '../ui/ModalWrapper.vue';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
-import CardSearch from '../CardSearch.vue';
-import BinderPicker from '../BinderPicker.vue';
+import CardSearch from './CardSearch.vue';
+import { totalAssigned, validAssignments } from '../../utils/binderQuantities.js';
+import BinderPicker from '../binders/BinderPicker.vue';
 import { rememberMarketPrinting } from '../../services/marketPrices.js';
 import { collectionCards } from '../../stores/collection.js';
 
@@ -39,7 +40,7 @@ function removeCopyRow(id) {
 
 // Local form state is separate from saved cards until Add Card is submitted.
 const draft = ref({
-  binderIds: [],
+  binderQuantities: {},
   name: '',
   printingId: '',
   copies: [createCopyRow()],
@@ -137,6 +138,7 @@ watch(selectedPrinting, () => {
 
 const emit = defineEmits(['close']);
 
+const draftQuantity = computed(() => draft.value.copies.reduce((sum, copy) => sum + (Number.isInteger(copy.quantity) && copy.quantity > 0 ? copy.quantity : 0), 0));
 const canAddCard = computed(() => {
   const printing = selectedPrinting.value;
   const finish = draft.value.finish;
@@ -145,6 +147,7 @@ const canAddCard = computed(() => {
     !loadingPrintings.value &&
     Boolean(printing?.finishes?.includes(finish)) &&
     draft.value.copies.length > 0 &&
+    validAssignments(draft.value.binderQuantities, draftQuantity.value) &&
     draft.value.copies.every(
       (copy) =>
         conditions.includes(copy.condition) && Number.isInteger(copy.quantity) && copy.quantity > 0 &&
@@ -183,10 +186,23 @@ function addCard() {
     isFoil: draft.value.finish !== 'nonfoil',
     favorite: draft.value.favorite,
     trade: draft.value.trade,
-    binderIds: [...draft.value.binderIds],
+    binderIds: [],
+    binderQuantities: {},
     purchasePrice,
   }));
 
+  // Allocate the selected counts across the new copy groups in form order.
+  for (const [binderId, assigned] of Object.entries(draft.value.binderQuantities)) {
+    let remaining = assigned;
+    for (const entry of entries) {
+      const amount = Math.min(remaining, entry.quantity - totalAssigned(entry.binderQuantities));
+      if (amount > 0) {
+        entry.binderQuantities[binderId] = amount;
+        entry.binderIds.push(binderId);
+        remaining -= amount;
+      }
+    }
+  }
   collectionCards.value.push(...entries);
 
   emit('close');
@@ -194,6 +210,7 @@ function addCard() {
 
 onBeforeUnmount(clearPrintings);
 </script>
+
 <template>
   <ModalWrapper aria-labelledby="add-card-title" id="add-card-modal" large @close="emit('close')">
     <div class="modal-content">
@@ -320,7 +337,8 @@ onBeforeUnmount(clearPrintings);
           </div>
 
           <div class="mb-3">
-            <BinderPicker v-model="draft.binderIds" />
+            <BinderPicker v-model="draft.binderQuantities" :owned-quantity="draftQuantity" />
+            <p v-if="Object.keys(draft.binderQuantities).length" class="form-text mb-0">Copies are assigned to groups in the order entered above.</p>
           </div>
 
           <div class="option-list">

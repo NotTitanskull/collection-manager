@@ -1,6 +1,7 @@
 <script setup>
 // Presentational row: receives a card prop and emits manage when the user opens it.
 defineProps({
+  displayedQuantity: { type: Number, default: null },
   card: {
     type: Object,
     required: true,
@@ -33,7 +34,8 @@ const emit = defineEmits(["manage"]);
 
         <span class="d-flex align-items-center gap-2">
           <span class="badge text-bg-light">{{ card.condition }}</span>
-          <span class="small">×{{ card.quantity }}</span>
+          <span class="small">×{{ displayedQuantity ?? card.quantity }}</span>
+          <span v-if="displayedQuantity !== null" class="small text-secondary">of {{ card.quantity }} owned</span>
         </span>
       </span>
     </button>
@@ -42,7 +44,7 @@ const emit = defineEmits(["manage"]);
 
 <style scoped lang="scss">
 // Row-specific presentation and interaction feedback, isolated from other buttons.
-@use "../assets/scss/variables" as theme;
+@use "../../assets/scss/variables" as theme;
 
 .collection-row {
   border-bottom: 1px solid theme.$row-border;

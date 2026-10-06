@@ -10,7 +10,9 @@ let lastRequestAt = 0;
 export function rememberMarketPrinting(printing) {
   if (!printing?.id || pending.has(printing.id)) return;
   quotes.value[printing.id] = {
-    status: 'ready', prices: printing.prices ?? {}, checkedAt: Date.now(),
+    status: 'ready',
+    prices: printing.prices ?? {},
+    checkedAt: Date.now(),
   };
 }
 
@@ -49,7 +51,7 @@ export function refreshMarketPrice(card, { force = false } = {}) {
   quotes.value[id] = { status: 'loading', checkedAt: null };
   const request = queue.then(async () => {
     const delay = Math.max(0, 100 - (Date.now() - lastRequestAt));
-    if (delay) await new Promise(resolve => setTimeout(resolve, delay));
+    if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
     lastRequestAt = Date.now();
     try {
       const response = await fetch(`https://api.scryfall.com/cards/${encodeURIComponent(id)}`, {

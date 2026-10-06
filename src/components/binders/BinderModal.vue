@@ -1,9 +1,8 @@
 <script setup>
-// Creates or edits a custom binder; deleting a binder never deletes its cards.
-import ModalWrapper from "./ModalWrapper.vue";
+// Creates or edits a custom binder; deletion has a separate confirmation modal.
+import ModalWrapper from "../ui/ModalWrapper.vue";
 import { computed, ref } from "vue";
 import { binders } from "../../stores/binders.js";
-import { collectionCards } from "../../stores/collection.js";
 
 const props = defineProps({
   binder: {
@@ -16,7 +15,6 @@ const emit = defineEmits(["close"]);
 const name = ref("");
 const description = ref("");
 const color = ref("blue");
-const confirmingDeletion = ref(false);
 
 const colors = [
   { value: "blue", label: "Blue" },
@@ -37,7 +35,6 @@ const canSave = computed(() => name.value.trim().length > 0 && !duplicateName.va
 
 // Use existing values for edit mode, or defaults for create mode.
 function resetForm() {
-  confirmingDeletion.value = false;
   name.value = props.binder?.name ?? "";
   description.value = props.binder?.description ?? "";
   color.value = props.binder?.color ?? "blue";
@@ -45,7 +42,7 @@ function resetForm() {
 
 // Validate the name and update by ID, or create a new binder with its own ID.
 function saveBinder() {
-  if (!canSave.value || confirmingDeletion.value) return;
+  if (!canSave.value) return;
 
   const values = {
     name: name.value.trim(),
@@ -66,24 +63,6 @@ function saveBinder() {
     });
   }
 
-  emit("close");
-}
-
-// Remove binder references from cards before removing the binder itself.
-function deleteBinder() {
-  if (!props.binder || !confirmingDeletion.value) return;
-
-  const id = props.binder.id;
-  const index = binders.value.findIndex((binder) => binder.id === id);
-  if (index === -1) return;
-
-  for (const card of collectionCards.value) {
-    if (card.binderIds?.includes(id)) {
-      card.binderIds = card.binderIds.filter((binderId) => binderId !== id);
-    }
-  }
-
-  binders.value.splice(index, 1);
   emit("close");
 }
 
@@ -166,41 +145,11 @@ resetForm();
             </div>
           </div>
         </section>
-        <div v-if="binder">
-          <div v-if="confirmingDeletion" class="alert alert-danger mb-0" role="alert">
-            <p>
-              Delete
-              <strong>{{ binder.name }}</strong>
-              ? Its cards will stay in your collection and any other assigned binders.
-            </p>
-            <div class="d-flex flex-wrap gap-2">
-              <button
-                type="button"
-                class="btn btn-outline-secondary"
-                @click="confirmingDeletion = false">
-                Keep Binder
-              </button>
-              <button type="button" class="btn btn-danger" @click="deleteBinder">
-                Confirm Delete
-              </button>
-            </div>
-          </div>
-          <button
-            v-else
-            type="button"
-            class="btn btn-outline-danger"
-            @click="confirmingDeletion = true">
-            Delete Binder
-          </button>
-        </div>
       </div>
 
-      <div class="modal-footer justify-content-between">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-          Cancel
-        </button>
-
-        <button type="submit" class="btn btn-primary" :disabled="!canSave || confirmingDeletion">
+      <div class="modal-footer justify-content-end">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary" :disabled="!canSave">
           {{ binder ? "Save Changes" : "Create Binder" }}
         </button>
       </div>

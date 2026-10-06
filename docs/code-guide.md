@@ -30,17 +30,21 @@ A template ref such as `ref="modalElement"` is different from ordinary form stat
 
 ## Components and responsibilities
 
-Modal forms and `ModalWrapper.vue` live in `src/components/modals/`. Shared controls (`CardSearch`, `BinderPicker`, `CollectionEntry`, and `FloatingAddButton`) live directly in `src/components/`.
+Components are grouped by purpose under `src/components/`: `cards/` contains card controls and dialogs, `binders/` contains binder controls and dialogs, and `trade/` contains trade dialogs. Shared UI (`ModalWrapper` and `FloatingAddButton`) lives in `ui/`. Each dialog stays beside the controls it works with.
 
 - `FloatingAddButton`: accessible Add action shared by Collection and Binders, shown as a circle on smaller screens and a labeled pill at desktop widths (992px and up), positioned above mobile navigation.
+- `CardSummary`: shared card image, printing, and finish summary in Manage Card and the binder quantity dialog.
 - `CollectionEntry`: displays a card and emits `manage`; it does not save data.
 - `CardSearch`: debounces Scryfall autocomplete and emits the chosen name.
-- `BinderPicker`: shared binder checkboxes used by card forms.
+- `BinderPicker`: shared binder selection and quantity controls used by card forms.
 - `ModalWrapper`: Vue lifecycle wrapper around Bootstrap’s Modal plugin.
 - `AddCardModal`: selects a printing and finish, collects condition/quantity rows, then creates owned entries.
 - `ManageCardModal`: edits or deletes one owned entry by `entryId`.
-- `BinderModal`: creates, edits, or deletes a custom binder.
-- `BinderCardsModal`: assigns existing entries to a binder.
+- `BinderModal`: creates or edits a custom binder.
+- `BinderOptions`: shared Bootstrap dropdown for editing and deleting custom binders.
+- `DeleteBinderModal`: confirms binder deletion and releases its assignments without deleting cards.
+- `BinderCardsModal`: adds selected numbers of unassigned copies to a binder.
+- `BinderQuantityModal`: edits only the number assigned to one custom binder, without changing owned stock.
 - `TradePickerModal`: chooses owned entries for the giving draft.
 - `TradeReceiveModal`: looks up entries for the receiving draft.
 
@@ -48,7 +52,7 @@ Views coordinate these components. `CollectionView` owns search/sort and dialog 
 
 ## Where data lives
 
-`src/data/cards.js` defines starting examples and documents the card shape with JSDoc. JSDoc comments help readers and editors; they do not perform runtime validation.
+`src/data/sampleCards.js` defines starting examples and documents the card shape with JSDoc. JSDoc comments help readers and editors; they do not perform runtime validation.
 
 `src/stores/collection.js` and `binders.js` export shared refs. They are JavaScript module exports, not properties added to `window`. All importing components see the same reactive state.
 
@@ -60,7 +64,7 @@ A deep watcher saves nested changes. Storage belongs to the browser and origin; 
 
 - `entryId` identifies an owned row. Two rows can represent the same printing in different conditions.
 - `scryfallId` identifies the exact printing in Scryfall.
-- A binder has `id`, `name`, `description`, and `color`. Cards store its ID in `binderIds`.
+- A binder has `id`, `name`, `description`, and `color`. `binderQuantities` maps binder IDs to assigned copy counts. `binderIds` is kept in sync for compatibility. `src/utils/binderQuantities.js` handles legacy memberships and validates that total assigned cannot exceed owned quantity. Older overlapping memberships are preserved and flagged for user review; new assignments must respect the stock limit. Favorites is an automatic view, not an allocation.
 - `purchasePrice` is the optional purchase cost per copy in USD. Blank inputs save as `null`; zero is a valid recorded cost. Legacy `price` estimates are preserved but never used as purchase prices or current market values.
 - `src/services/marketPrices.js` caches market quotes by exact printing ID for 15 minutes. Finish determines which USD price is used. Forced refreshes fetch again; failed lookups do not fall back to purchase costs or legacy estimates.
 - `finish` distinguishes nonfoil, foil, and etched. Older entries can still use `isFoil`.
@@ -68,11 +72,11 @@ A deep watcher saves nested changes. Storage belongs to the browser and origin; 
 
 ## Following a change
 
-Clicking a collection row emits `manage(card)`. Its view puts that card in `selectedCard`, which mounts `ManageCardModal`. The modal copies editable values into local refs, including a separate binder ID array. Cancel discards these drafts. Save validates them and updates the store entry matching `entryId`. The watcher persists the update, and Vue refreshes the displayed row.
+Clicking a collection row emits `manage(card)`. Its view puts that card in `selectedCard`, which mounts `ManageCardModal`. The modal copies editable values into local refs, including a separate binder quantity draft. Cancel discards these drafts. Save validates them and updates the store entry matching `entryId`. The watcher persists the update, and Vue refreshes the displayed row.
 
 Adding a card follows a similar flow. Scryfall supplies available printings and finishes. Rows with the same condition and purchase price within one submission are combined with a `Map`; rows with different costs stay separate, and each group gets a new owned entry ID. This grouping does not merge earlier saved entries.
 
-Deleting a binder removes its membership IDs from cards, preserving the cards themselves. Trade edits affect only the draft and never transfer or delete collection entries. The draft resets when leaving Trade.
+Deleting a binder removes its quantity assignment and compatibility ID from cards, preserving the owned quantities and other assignments. Trade edits affect only the draft and never transfer or delete collection entries. The draft resets when leaving Trade.
 
 ## How the dialogs work
 

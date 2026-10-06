@@ -1,9 +1,9 @@
 <script setup>
 // Looks up cards to receive and emits a draft entry to the Trade page.
-import ModalWrapper from "./ModalWrapper.vue";
+import ModalWrapper from "../ui/ModalWrapper.vue";
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { rememberMarketPrinting } from "../../services/marketPrices.js";
-import CardSearch from "../CardSearch.vue";
+import CardSearch from "../cards/CardSearch.vue";
 
 const emit = defineEmits(["add", "close"]);
 const name = ref("");

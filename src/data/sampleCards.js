@@ -13,7 +13,8 @@
  * @property {boolean} isFoil Legacy finish flag retained for older saved entries.
  * @property {boolean} favorite Membership in the automatic Favorites binder.
  * @property {boolean} trade Whether the entry is marked available for trade.
- * @property {string[]} binderIds Custom binder memberships.
+ * @property {string[]} binderIds Compatibility list of assigned binder IDs.
+ * @property {Object<string, number>} [binderQuantities] Copies assigned to each custom binder; total cannot exceed owned quantity.
  * @property {number|null} [purchasePrice] Optional purchase cost per copy in USD; null means not recorded.
  * @property {number|null} [price] Legacy saved estimate; not used as a purchase cost or current market price.
  */

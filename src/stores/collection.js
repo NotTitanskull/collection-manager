@@ -1,6 +1,6 @@
 // Shared reactive state: importing this module reuses the same ref across components.
 import { ref, watch } from "vue";
-import { sampleCards } from "../data/cards.js";
+import { sampleCards } from "../data/sampleCards.js";
 
 // Browser storage is scoped to this origin (protocol, host, and port).
 const STORAGE_KEY = "collection-manager:cards";

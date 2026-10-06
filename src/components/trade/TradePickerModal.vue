@@ -1,6 +1,6 @@
 <script setup>
 // Selects owned entries for a trade draft; emits IDs without changing the collection.
-import ModalWrapper from "./ModalWrapper.vue";
+import ModalWrapper from "../ui/ModalWrapper.vue";
 import { computed, ref } from "vue";
 import { collectionCards } from "../../stores/collection.js";
 
