@@ -28,17 +28,23 @@ The router uses hash URLs so GitHub Pages can serve every route from the same HT
 
 A template ref such as `ref="modalElement"` is different from ordinary form state: Vue assigns the rendered element to that ref.
 
+For examples of `ref`, `computed`, `watch`, and `nextTick` in the new card components,
+read the [card overview guide](card-overview-guide.md). It also explains how to follow
+the grouped code sections and the image-sizing rules.
+
 ## Components and responsibilities
 
 Components are grouped by purpose under `src/components/`: `cards/` contains card controls and dialogs, `binders/` contains binder controls and dialogs, and `trade/` contains trade dialogs. Shared UI (`ModalWrapper` and `FloatingAddButton`) lives in `ui/`. Each dialog stays beside the controls it works with.
 
 - `FloatingAddButton`: accessible Add action shared by Collection and Binders, shown as a circle on smaller screens and a labeled pill at desktop widths (992px and up), positioned above mobile navigation.
+- `CardDetailsModal`: groups owned entries by card name into an image-first overview, with totals, condition/finish variants, Add another, and separate entry editing. Different purchase-cost records stay separately editable. Only one modal is mounted at a time.
+- `CardImagePreview`: readable high-resolution card image, full-size view, and fallback for missing images.
 - `CardSummary`: shared card image, printing, and finish summary in Manage Card and the binder quantity dialog.
 - `CollectionEntry`: displays a card and emits `manage`; it does not save data.
 - `CardSearch`: debounces Scryfall autocomplete and emits the chosen name.
 - `BinderPicker`: shared binder selection and quantity controls used by card forms.
 - `ModalWrapper`: Vue lifecycle wrapper around Bootstrap’s Modal plugin.
-- `AddCardModal`: selects a printing and finish, collects condition/quantity rows, then creates owned entries.
+- `AddCardModal`: selects a printing and finish, collects condition/quantity rows, then creates owned entries. An optional `initialCard` preselects the name, printing, and finish for Add another.
 - `ManageCardModal`: edits or deletes one owned entry by `entryId`.
 - `BinderModal`: creates or edits a custom binder.
 - `BinderOptions`: shared Bootstrap dropdown for editing and deleting custom binders.
@@ -52,7 +58,20 @@ Views coordinate these components. `CollectionView` owns search/sort and dialog 
 
 ## Where data lives
 
-`src/data/sampleCards.js` defines starting examples and documents the card shape with JSDoc. JSDoc comments help readers and editors; they do not perform runtime validation.
+`src/models/Card.js` defines shared printing information: name, set, collector number,
+rarity, type, label, and image. `CollectionEntry` extends it with owned quantity, condition,
+flags, binder allocations, and optional purchase cost. Add Card and sample data create
+`CollectionEntry` instances. `TradeEntry` extends the same base with incoming quantity,
+condition, finish, and market estimate, without collection flags or binder assignments.
+
+Each subclass calls `super(printing)` to run the shared constructor first, then assigns
+its own fields. Constructors do not fetch, validate, or save data. Those jobs remain
+in forms, services, and stores. JSON preserves the fields but not class identity;
+older saved plain objects still work because the app does not rely on class methods.
+
+Sample cards pass fixed IDs and copy details to `new CollectionEntry(printing, options)`.
+Normal creation receives generated IDs. Missing sample rarity can be filled from
+cached market metadata. JSDoc describes the fields without performing validation.
 
 `src/stores/collection.js` and `binders.js` export shared refs. They are JavaScript module exports, not properties added to `window`. All importing components see the same reactive state.
 
@@ -72,7 +91,7 @@ A deep watcher saves nested changes. Storage belongs to the browser and origin; 
 
 ## Following a change
 
-Clicking a collection row emits `manage(card)`. Its view puts that card in `selectedCard`, which mounts `ManageCardModal`. The modal copies editable values into local refs, including a separate binder quantity draft. Cancel discards these drafts. Save validates them and updates the store entry matching `entryId`. The watcher persists the update, and Vue refreshes the displayed row.
+Clicking a collection row emits `manage(card)`. Its view puts that card in `selectedCard`, which mounts `CardDetailsModal`. Its Edit action opens the original `ManageCardModal` for the selected entry, and closing that form returns to the overview. The modal copies editable values into local refs, including a separate binder quantity draft. Cancel discards these drafts. Save validates them and updates the store entry matching `entryId`. The watcher persists the update, and Vue refreshes the displayed row.
 
 Adding a card follows a similar flow. Scryfall supplies available printings and finishes. Rows with the same condition and purchase price within one submission are combined with a `Map`; rows with different costs stay separate, and each group gets a new owned entry ID. This grouping does not merge earlier saved entries.
 
@@ -135,3 +154,17 @@ Dependencies marked with `^` allow compatible updates within their declared majo
 - `main.scss`: includes shared styles once, reserves bottom space on pages with floating Add actions, and defines the `v-cloak` hiding rule.
 
 The leading underscore marks a Sass partial intended for inclusion by another stylesheet. `@use "variables" as theme` makes values available as `theme.$accent-color`. In nested SCSS, `&` refers to the surrounding selector: `.site-nav-link { &.is-active { ... } }` targets an element carrying both classes.
+
+Overview variant counts distinguish printing, finish, and condition; copy counts sum owned quantities. Market totals cover all matching entries and show unavailable if any quote is missing. Selecting another printing changes the image and metadata without changing saved data. Custom binder rows still open the binder quantity editor.
+
+## Adding matching copies
+
+`src/utils/collectionEntries.js` merges newly added copies into an existing row when
+the Scryfall printing ID, finish, condition, and optional purchase cost match. It keeps
+the existing entry ID, adds quantities and binder allocations, and preserves Favorite
+and available-for-trade flags if either entry has them enabled. Different costs stay
+separate so purchase records are not overwritten. Legacy foil flags and binder lists
+are supported. Existing duplicate saved rows are not automatically combined.
+
+Every open binder shows search and name sorting, including empty custom binders.
+The Add existing cards picker also supports search and name sorting.

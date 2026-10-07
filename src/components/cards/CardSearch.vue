@@ -1,13 +1,13 @@
 <script setup>
 // Reusable Scryfall autocomplete. v-model holds typed text; select emits a chosen name.
-import { onBeforeUnmount, ref } from "vue";
+import { onBeforeUnmount, ref } from 'vue';
 
 const name = defineModel({ type: String, required: true });
-const emit = defineEmits(["select"]);
+const emit = defineEmits(['select']);
 
 const suggestions = ref([]);
 const loading = ref(false);
-const notice = ref("");
+const notice = ref('');
 const highlighted = ref(-1);
 
 let timer;
@@ -25,7 +25,7 @@ function closeSuggestions() {
 /** Update the model immediately, but wait briefly before requesting suggestions. */
 function updateSearch(event) {
   closeSuggestions();
-  notice.value = "";
+  notice.value = '';
   name.value = event.target.value;
 
   const query = event.target.value.trim();
@@ -48,7 +48,7 @@ async function fetchSuggestions(query) {
     );
 
     if (!response.ok) {
-      throw new Error("Card search failed.");
+      throw new Error('Card search failed.');
     }
 
     const result = await response.json();
@@ -58,11 +58,11 @@ async function fetchSuggestions(query) {
     suggestions.value = result.data.slice(0, 8);
 
     if (!suggestions.value.length) {
-      notice.value = "No matching cards found.";
+      notice.value = 'No matching cards found.';
     }
   } catch (error) {
     if (!request.signal.aborted) {
-      notice.value = "Could not search for cards. Please try again.";
+      notice.value = 'Could not search for cards. Please try again.';
     }
   } finally {
     if (!request.signal.aborted) {
@@ -74,9 +74,9 @@ async function fetchSuggestions(query) {
 /** Commit a suggestion and notify the parent to load that card’s printings. */
 function selectCard(suggestion) {
   closeSuggestions();
-  notice.value = "";
+  notice.value = '';
   name.value = suggestion;
-  emit("select", suggestion);
+  emit('select', suggestion);
 }
 
 /** Consume Escape only for an open suggestion list; otherwise the dialog can close. */
@@ -127,7 +127,8 @@ onBeforeUnmount(closeSuggestions);
       @keydown.down.prevent="moveSuggestion(1)"
       @keydown.up.prevent="moveSuggestion(-1)"
       @keydown.enter.prevent="selectHighlighted"
-      @keydown.escape="dismissSuggestions" />
+      @keydown.escape="dismissSuggestions"
+    />
 
     <div v-if="loading || suggestions.length" class="card-suggestions">
       <p v-if="loading" class="card-suggestions-status" role="status">Searching Scryfall…</p>
@@ -136,7 +137,8 @@ onBeforeUnmount(closeSuggestions);
         id="card-suggestions"
         class="list-unstyled mb-0"
         role="listbox"
-        aria-label="Matching cards">
+        aria-label="Matching cards"
+      >
         <li v-for="(suggestion, index) in suggestions" :key="suggestion">
           <button
             :id="`card-option-${index}`"
@@ -147,7 +149,8 @@ onBeforeUnmount(closeSuggestions);
             :aria-selected="index === highlighted"
             tabindex="-1"
             @mousedown.prevent
-            @click="selectCard(suggestion)">
+            @click="selectCard(suggestion)"
+          >
             {{ suggestion }}
           </button>
         </li>
@@ -162,7 +165,7 @@ onBeforeUnmount(closeSuggestions);
 
 <style scoped lang="scss">
 // Position the autocomplete list above nearby content and show the keyboard highlight.
-@use "../../assets/scss/variables" as theme;
+@use '../../assets/scss/variables' as theme;
 
 .card-suggestions {
   position: relative;

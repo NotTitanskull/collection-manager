@@ -29,26 +29,54 @@ function maximumFor(id) {
         <label class="d-flex align-items-center justify-content-between gap-3">
           <span>
             <strong>{{ binder.name }}</strong>
-            <small v-if="binder.description" class="d-block text-secondary">{{ binder.description }}</small>
+            <small v-if="binder.description" class="d-block text-secondary">{{
+              binder.description
+            }}</small>
           </span>
-          <input type="checkbox" class="form-check-input flex-shrink-0"
+          <input
+            type="checkbox"
+            class="form-check-input flex-shrink-0"
             :checked="Object.hasOwn(assignments, binder.id)"
-            :disabled="!Object.hasOwn(assignments, binder.id) && totalAssigned(assignments) >= ownedQuantity"
-            @change="toggle(binder.id, $event.target.checked)" />
+            :disabled="
+              !Object.hasOwn(assignments, binder.id) && totalAssigned(assignments) >= ownedQuantity
+            "
+            @change="toggle(binder.id, $event.target.checked)"
+          />
         </label>
         <div v-if="Object.hasOwn(assignments, binder.id)" class="mt-2">
-          <label class="form-label small" :for="`binder-quantity-${binder.id}`">Copies in {{ binder.name }}</label>
-          <input :id="`binder-quantity-${binder.id}`" :value="assignments[binder.id]"
-            type="number" min="1" :max="maximumFor(binder.id)" step="1" class="form-control"
-            :aria-invalid="!Number.isInteger(assignments[binder.id]) || assignments[binder.id] < 1 || assignments[binder.id] > maximumFor(binder.id)"
-            @input="setQuantity(binder.id, $event.target.value)" />
+          <label class="form-label small" :for="`binder-quantity-${binder.id}`"
+            >Copies in {{ binder.name }}</label
+          >
+          <input
+            :id="`binder-quantity-${binder.id}`"
+            :value="assignments[binder.id]"
+            type="number"
+            min="1"
+            :max="maximumFor(binder.id)"
+            step="1"
+            class="form-control"
+            :aria-invalid="
+              !Number.isInteger(assignments[binder.id]) ||
+              assignments[binder.id] < 1 ||
+              assignments[binder.id] > maximumFor(binder.id)
+            "
+            @input="setQuantity(binder.id, $event.target.value)"
+          />
         </div>
       </div>
     </div>
-    <p v-if="binders.length" class="small mt-2 mb-0" :class="totalAssigned(assignments) > ownedQuantity ? 'text-danger' : 'text-secondary'" role="status">
-      {{ totalAssigned(assignments) }} of {{ ownedQuantity }} copies assigned. Divide your owned copies across binders.
+    <p
+      v-if="binders.length"
+      class="small mt-2 mb-0"
+      :class="totalAssigned(assignments) > ownedQuantity ? 'text-danger' : 'text-secondary'"
+      role="status"
+    >
+      {{ totalAssigned(assignments) }} of {{ ownedQuantity }} copies assigned. Divide your owned
+      copies across binders.
     </p>
-    <p v-else class="small text-secondary mb-0">No binders yet. Create one on the Binders page, then select it here.</p>
+    <p v-else class="small text-secondary mb-0">
+      No binders yet. Create one on the Binders page, then select it here.
+    </p>
   </fieldset>
 </template>
 
@@ -58,6 +86,10 @@ function maximumFor(id) {
   margin: 0;
   padding: 0;
   border: 0;
-  legend { float: none; width: auto; font-size: 1rem; }
+  legend {
+    float: none;
+    width: auto;
+    font-size: 1rem;
+  }
 }
 </style>

@@ -7,6 +7,10 @@ import { totalAssigned, validAssignments } from '../../utils/binderQuantities.js
 import BinderPicker from '../binders/BinderPicker.vue';
 import { rememberMarketPrinting } from '../../services/marketPrices.js';
 import { collectionCards } from '../../stores/collection.js';
+import { addCollectionEntries } from '../../utils/collectionEntries.js';
+import { CollectionEntry } from '../../models/CollectionEntry.js';
+
+const props = defineProps({ initialCard: { type: Object, default: null } });
 
 const conditions = [
   'Near Mint',
@@ -41,7 +45,7 @@ function removeCopyRow(id) {
 // Local form state is separate from saved cards until Add Card is submitted.
 const draft = ref({
   binderQuantities: {},
-  name: '',
+  name: props.initialCard?.name ?? '',
   printingId: '',
   copies: [createCopyRow()],
   finish: '',
@@ -106,6 +110,12 @@ async function loadPrintings(name) {
 
     if (!request.signal.aborted) {
       printings.value = results;
+      if (
+        props.initialCard?.name === name &&
+        results.some((printing) => printing.id === props.initialCard.scryfallId)
+      ) {
+        draft.value.printingId = props.initialCard.scryfallId;
+      }
     }
   } catch (error) {
     if (!request.signal.aborted) {
@@ -133,12 +143,22 @@ const finishes = computed(() =>
 
 // A different printing may support different finishes; choose an allowed default.
 watch(selectedPrinting, () => {
-  draft.value.finish = finishes.value[0] ?? '';
+  const preferred = props.initialCard?.finish ?? (props.initialCard?.isFoil ? 'foil' : 'nonfoil');
+  draft.value.finish =
+    selectedPrinting.value?.id === props.initialCard?.scryfallId &&
+    finishes.value.includes(preferred)
+      ? preferred
+      : (finishes.value[0] ?? '');
 });
 
 const emit = defineEmits(['close']);
 
-const draftQuantity = computed(() => draft.value.copies.reduce((sum, copy) => sum + (Number.isInteger(copy.quantity) && copy.quantity > 0 ? copy.quantity : 0), 0));
+const draftQuantity = computed(() =>
+  draft.value.copies.reduce(
+    (sum, copy) => sum + (Number.isInteger(copy.quantity) && copy.quantity > 0 ? copy.quantity : 0),
+    0,
+  ),
+);
 const canAddCard = computed(() => {
   const printing = selectedPrinting.value;
   const finish = draft.value.finish;
@@ -150,8 +170,11 @@ const canAddCard = computed(() => {
     validAssignments(draft.value.binderQuantities, draftQuantity.value) &&
     draft.value.copies.every(
       (copy) =>
-        conditions.includes(copy.condition) && Number.isInteger(copy.quantity) && copy.quantity > 0 &&
-        (copy.purchasePrice === '' || (Number.isFinite(copy.purchasePrice) && copy.purchasePrice >= 0)),
+        conditions.includes(copy.condition) &&
+        Number.isInteger(copy.quantity) &&
+        copy.quantity > 0 &&
+        (copy.purchasePrice === '' ||
+          (Number.isFinite(copy.purchasePrice) && copy.purchasePrice >= 0)),
     )
   );
 });
@@ -172,24 +195,17 @@ function addCard() {
     groups.set(key, group);
   }
 
-  const entries = Array.from(groups.values(), ({ condition, quantity, purchasePrice }) => ({
-    entryId: crypto.randomUUID(),
-    scryfallId: printing.id,
-    name: printing.name,
-    type: printing.type_line,
-    printing:
-      `${printing.set_name} — ${printing.set.toUpperCase()}` + ` #${printing.collector_number}`,
-    image: printing.image_uris?.normal ?? printing.card_faces?.[0]?.image_uris?.normal ?? '',
-    condition,
-    quantity,
-    finish: draft.value.finish,
-    isFoil: draft.value.finish !== 'nonfoil',
-    favorite: draft.value.favorite,
-    trade: draft.value.trade,
-    binderIds: [],
-    binderQuantities: {},
-    purchasePrice,
-  }));
+  const entries = Array.from(groups.values(), ({ condition, quantity, purchasePrice }) => {
+    return new CollectionEntry(printing, {
+      condition,
+      quantity,
+      finish: draft.value.finish,
+      isFoil: draft.value.finish !== 'nonfoil',
+      favorite: draft.value.favorite,
+      trade: draft.value.trade,
+      purchasePrice,
+    });
+  });
 
   // Allocate the selected counts across the new copy groups in form order.
   for (const [binderId, assigned] of Object.entries(draft.value.binderQuantities)) {
@@ -203,12 +219,13 @@ function addCard() {
       }
     }
   }
-  collectionCards.value.push(...entries);
+  addCollectionEntries(collectionCards.value, entries);
 
   emit('close');
 }
 
 onBeforeUnmount(clearPrintings);
+if (props.initialCard) loadPrintings(props.initialCard.name);
 </script>
 
 <template>
@@ -281,7 +298,9 @@ onBeforeUnmount(clearPrintings);
             </button>
           </div>
 
-          <p id="add-purchase-help" class="small text-secondary">Leave purchase price blank for cards from packs, gifts, or when the cost is unknown.</p>
+          <p id="add-purchase-help" class="small text-secondary">
+            Leave purchase price blank for cards from packs, gifts, or when the cost is unknown.
+          </p>
           <div class="d-grid gap-3">
             <div v-for="(copy, index) in draft.copies" :key="copy.id" class="copy-fields">
               <div>
@@ -310,10 +329,19 @@ onBeforeUnmount(clearPrintings);
               </div>
 
               <div class="copy-purchase-price">
-                <label :for="`copy-purchase-${copy.id}`" class="form-label">Purchase price per copy (USD, optional)</label>
-                <input :id="`copy-purchase-${copy.id}`" v-model.number="copy.purchasePrice"
-                  type="number" min="0" step="0.01" class="form-control"
-                  placeholder="Not recorded" aria-describedby="add-purchase-help" />
+                <label :for="`copy-purchase-${copy.id}`" class="form-label"
+                  >Purchase price per copy (USD, optional)</label
+                >
+                <input
+                  :id="`copy-purchase-${copy.id}`"
+                  v-model.number="copy.purchasePrice"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="form-control"
+                  placeholder="Not recorded"
+                  aria-describedby="add-purchase-help"
+                />
               </div>
               <button
                 type="button"
@@ -338,7 +366,9 @@ onBeforeUnmount(clearPrintings);
 
           <div class="mb-3">
             <BinderPicker v-model="draft.binderQuantities" :owned-quantity="draftQuantity" />
-            <p v-if="Object.keys(draft.binderQuantities).length" class="form-text mb-0">Copies are assigned to groups in the order entered above.</p>
+            <p v-if="Object.keys(draft.binderQuantities).length" class="form-text mb-0">
+              Copies are assigned to groups in the order entered above.
+            </p>
           </div>
 
           <div class="option-list">

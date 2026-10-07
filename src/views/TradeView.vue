@@ -1,4 +1,5 @@
 <script setup>
+import ConditionBadge from '../components/cards/ConditionBadge.vue';
 // Temporary trade comparison. All edits here affect the draft, not owned card quantities.
 import { computed, ref } from "vue";
 import { marketPrice, marketState, marketNote, refreshMarketPrice } from "../services/marketPrices.js";
@@ -200,7 +201,7 @@ function setReceivedQuantity(entryId, value) {
                 }}
               </p>
               <p>
-                {{ line.card.condition }} ·
+                <ConditionBadge :condition="line.card.condition" /> ·
                 {{ hasPrice(line.card) ? money(line.card.price) + " per copy" : "Price unknown" }}
               </p>
               <p class="small text-secondary" role="status">{{ marketNote(line.card) }}</p>
@@ -276,7 +277,7 @@ function setReceivedQuantity(entryId, value) {
               <h3 class="h6 mb-1">{{ card.name }}</h3>
               <p>{{ card.printing }} · {{ card.finishLabel }}</p>
               <p>
-                {{ card.condition }} ·
+                <ConditionBadge :condition="card.condition" /> ·
                 {{ hasPrice(card) ? money(card.price) + " per copy" : "Price unknown" }}
               </p>
               <p class="small text-secondary" role="status">{{ marketNote(card) }}</p>

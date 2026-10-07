@@ -1,8 +1,8 @@
 <script setup>
 // Creates or edits a custom binder; deletion has a separate confirmation modal.
-import ModalWrapper from "../ui/ModalWrapper.vue";
-import { computed, ref } from "vue";
-import { binders } from "../../stores/binders.js";
+import ModalWrapper from '../ui/ModalWrapper.vue';
+import { computed, ref } from 'vue';
+import { binders } from '../../stores/binders.js';
 
 const props = defineProps({
   binder: {
@@ -11,21 +11,21 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["close"]);
-const name = ref("");
-const description = ref("");
-const color = ref("blue");
+const emit = defineEmits(['close']);
+const name = ref('');
+const description = ref('');
+const color = ref('blue');
 
 const colors = [
-  { value: "blue", label: "Blue" },
-  { value: "purple", label: "Purple" },
-  { value: "green", label: "Green" },
+  { value: 'blue', label: 'Blue' },
+  { value: 'purple', label: 'Purple' },
+  { value: 'green', label: 'Green' },
 ];
 
 const duplicateName = computed(() => {
   const value = name.value.trim().toLowerCase();
   return (
-    value === "favorites" ||
+    value === 'favorites' ||
     binders.value.some(
       (binder) => binder.id !== props.binder?.id && binder.name.trim().toLowerCase() === value,
     )
@@ -35,9 +35,9 @@ const canSave = computed(() => name.value.trim().length > 0 && !duplicateName.va
 
 // Use existing values for edit mode, or defaults for create mode.
 function resetForm() {
-  name.value = props.binder?.name ?? "";
-  description.value = props.binder?.description ?? "";
-  color.value = props.binder?.color ?? "blue";
+  name.value = props.binder?.name ?? '';
+  description.value = props.binder?.description ?? '';
+  color.value = props.binder?.color ?? 'blue';
 }
 
 // Validate the name and update by ID, or create a new binder with its own ID.
@@ -63,7 +63,7 @@ function saveBinder() {
     });
   }
 
-  emit("close");
+  emit('close');
 }
 
 resetForm();
@@ -74,7 +74,7 @@ resetForm();
     <form class="modal-content" @submit.prevent="saveBinder">
       <div class="modal-header">
         <h2 id="binder-modal-title" class="modal-title fs-5">
-          {{ binder ? "Edit Binder" : "Create Binder" }}
+          {{ binder ? 'Edit Binder' : 'Create Binder' }}
         </h2>
 
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -99,15 +99,17 @@ resetForm();
               type="text"
               class="form-control"
               placeholder="e.g. Commander Staples"
-              required />
+              required
+            />
             <p
               id="binder-name-help"
               class="small mt-2 mb-0"
-              :class="duplicateName ? 'text-danger' : 'text-secondary'">
+              :class="duplicateName ? 'text-danger' : 'text-secondary'"
+            >
               {{
                 duplicateName
-                  ? "Choose a different name. That binder name is already in use."
-                  : "Use a unique name. Favorites is an automatic binder."
+                  ? 'Choose a different name. That binder name is already in use.'
+                  : 'Use a unique name. Favorites is an automatic binder.'
               }}
             </p>
           </div>
@@ -118,7 +120,8 @@ resetForm();
               id="binder-description"
               v-model="description"
               class="form-control"
-              rows="3"></textarea>
+              rows="3"
+            ></textarea>
           </div>
         </section>
 
@@ -138,7 +141,8 @@ resetForm();
                 class="form-check-input"
                 type="radio"
                 name="binder-color"
-                :value="option.value" />
+                :value="option.value"
+              />
               <label class="form-check-label" :for="`binder-color-${option.value}`">
                 {{ option.label }}
               </label>
@@ -148,9 +152,11 @@ resetForm();
       </div>
 
       <div class="modal-footer justify-content-end">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+          Cancel
+        </button>
         <button type="submit" class="btn btn-primary" :disabled="!canSave">
-          {{ binder ? "Save Changes" : "Create Binder" }}
+          {{ binder ? 'Save Changes' : 'Create Binder' }}
         </button>
       </div>
     </form>

@@ -7,7 +7,7 @@ import FloatingAddButton from "../components/ui/FloatingAddButton.vue";
 import CollectionEntry from "../components/cards/CollectionEntry.vue";
 import BinderQuantityModal from "../components/binders/BinderQuantityModal.vue";
 import { assignedQuantity, binderAssignments, totalAssigned } from "../utils/binderQuantities.js";
-import ManageCardModal from "../components/cards/ManageCardModal.vue";
+import CardDetailsModal from "../components/cards/CardDetailsModal.vue";
 import BinderModal from "../components/binders/BinderModal.vue";
 import BinderOptions from "../components/binders/BinderOptions.vue";
 import DeleteBinderModal from "../components/binders/DeleteBinderModal.vue";
@@ -102,7 +102,7 @@ function openAddDialog() {
           @edit="selectedBinder = openBinder; editingBinder = true"
           @delete="deletingBinder = openBinder" />
       </div>
-      <div v-if="binderCards.length" class="row g-2 mb-3">
+      <div class="row g-2 mb-3">
         <div class="col-6 col-sm-8">
           <label for="binder-search" class="visually-hidden">Search this binder</label>
           <input
@@ -194,7 +194,7 @@ function openAddDialog() {
       @deleted="id => { if (openBinderId === id) openBinderId = null; deletingBinder = null; }" />
     <BinderQuantityModal v-if="selectedCard && openBinder && !openBinder.automatic"
       :card="selectedCard" :binder="openBinder" @close="selectedCard = null" />
-    <ManageCardModal v-if="selectedCard && openBinder?.automatic" :card="selectedCard" @close="selectedCard = null" />
+    <CardDetailsModal v-if="selectedCard && openBinder?.automatic" :card="selectedCard" @close="selectedCard = null" />
     <BinderCardsModal v-if="choosingCards" :binder="openBinder" @close="choosingCards = false" />
   </section>
 </template>

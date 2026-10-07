@@ -1,4 +1,5 @@
 <script setup>
+import ConditionBadge from './ConditionBadge.vue';
 // Presentational row: receives a card prop and emits manage when the user opens it.
 defineProps({
   displayedQuantity: { type: Number, default: null },
@@ -8,7 +9,7 @@ defineProps({
   },
 });
 
-const emit = defineEmits(["manage"]);
+const emit = defineEmits(['manage']);
 </script>
 
 <template>
@@ -17,7 +18,8 @@ const emit = defineEmits(["manage"]);
       type="button"
       class="collection-entry"
       :aria-label="`Manage ${card.name}`"
-      @click="emit('manage', card)">
+      @click="emit('manage', card)"
+    >
       <img class="card-thumbnail" :src="card.image" :alt="''" />
 
       <span class="card-details">
@@ -29,13 +31,15 @@ const emit = defineEmits(["manage"]);
 
         <span class="small text-secondary mb-2">
           {{ card.printing }} ·
-          {{ card.finish === "etched" ? "Etched foil" : card.isFoil ? "Foil" : "Nonfoil" }}
+          {{ card.finish === 'etched' ? 'Etched foil' : card.isFoil ? 'Foil' : 'Nonfoil' }}
         </span>
 
         <span class="d-flex align-items-center gap-2">
-          <span class="badge text-bg-light">{{ card.condition }}</span>
+          <ConditionBadge :condition="card.condition" />
           <span class="small">×{{ displayedQuantity ?? card.quantity }}</span>
-          <span v-if="displayedQuantity !== null" class="small text-secondary">of {{ card.quantity }} owned</span>
+          <span v-if="displayedQuantity !== null" class="small text-secondary"
+            >of {{ card.quantity }} owned</span
+          >
         </span>
       </span>
     </button>
@@ -44,7 +48,7 @@ const emit = defineEmits(["manage"]);
 
 <style scoped lang="scss">
 // Row-specific presentation and interaction feedback, isolated from other buttons.
-@use "../../assets/scss/variables" as theme;
+@use '../../assets/scss/variables' as theme;
 
 .collection-row {
   border-bottom: 1px solid theme.$row-border;

@@ -5,7 +5,7 @@ import { collectionCards } from "../stores/collection.js";
 import FloatingAddButton from "../components/ui/FloatingAddButton.vue";
 import CollectionEntry from "../components/cards/CollectionEntry.vue";
 import AddCardModal from "../components/cards/AddCardModal.vue";
-import ManageCardModal from "../components/cards/ManageCardModal.vue";
+import CardDetailsModal from "../components/cards/CardDetailsModal.vue";
 
 const search = ref("");
 const sortOrder = ref("name-asc");
@@ -61,6 +61,6 @@ const filteredCards = computed(() => {
 
     <FloatingAddButton label="Add Card" @click="addingCard = true" />
     <AddCardModal v-if="addingCard" @close="addingCard = false" />
-    <ManageCardModal v-if="selectedCard" :card="selectedCard" @close="selectedCard = null" />
+    <CardDetailsModal v-if="selectedCard" :card="selectedCard" @close="selectedCard = null" />
   </section>
 </template>

@@ -4,17 +4,17 @@ defineProps({ card: { type: Object, required: true } });
 </script>
 
 <template>
-<section class="form-section card-summary" aria-label="Selected card">
-  <img v-if="card.image" :src="card.image" :alt="card.name" />
-  <div>
-    <h3 class="h5 mb-1">{{ card.name }}</h3>
-    <p class="small text-secondary mb-1">{{ card.type }}</p>
-    <p class="small text-secondary mb-2">{{ card.printing }}</p>
-    <span class="badge text-bg-light">
-      {{ card.finish === "etched" ? "Etched foil" : card.isFoil ? "Foil" : "Nonfoil" }}
-    </span>
-  </div>
-</section>
+  <section class="form-section card-summary" aria-label="Selected card">
+    <img v-if="card.image" :src="card.image" :alt="card.name" />
+    <div>
+      <h3 class="h5 mb-1">{{ card.name }}</h3>
+      <p class="small text-secondary mb-1">{{ card.type }}</p>
+      <p class="small text-secondary mb-2">{{ card.printing }}</p>
+      <span class="badge text-bg-light">
+        {{ card.finish === 'etched' ? 'Etched foil' : card.isFoil ? 'Foil' : 'Nonfoil' }}
+      </span>
+    </div>
+  </section>
 </template>
 
 <style scoped lang="scss">

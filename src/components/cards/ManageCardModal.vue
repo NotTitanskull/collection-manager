@@ -1,12 +1,21 @@
 <script setup>
 // Edits a copy of the selected entry so Cancel leaves the saved collection unchanged.
-import ModalWrapper from "../ui/ModalWrapper.vue";
-import { computed, ref, watch } from "vue";
-import { collectionCards } from "../../stores/collection.js";
-import { marketPrice, marketState, marketNote, refreshMarketPrice } from "../../services/marketPrices.js";
-import { binderAssignments, validAssignments, saveAssignments } from "../../utils/binderQuantities.js";
-import CardSummary from "./CardSummary.vue";
-import BinderPicker from "../binders/BinderPicker.vue";
+import ModalWrapper from '../ui/ModalWrapper.vue';
+import { computed, ref, watch } from 'vue';
+import { collectionCards } from '../../stores/collection.js';
+import {
+  marketPrice,
+  marketState,
+  marketNote,
+  refreshMarketPrice,
+} from '../../services/marketPrices.js';
+import {
+  binderAssignments,
+  validAssignments,
+  saveAssignments,
+} from '../../utils/binderQuantities.js';
+import CardSummary from './CardSummary.vue';
+import BinderPicker from '../binders/BinderPicker.vue';
 
 const props = defineProps({
   card: {
@@ -15,21 +24,21 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["close"]);
-const condition = ref("");
+const emit = defineEmits(['close']);
+const condition = ref('');
 const quantity = ref(1);
-const purchasePrice = ref("");
+const purchasePrice = ref('');
 const favorite = ref(false);
 const trade = ref(false);
 const confirmingRemoval = ref(false);
 const binderQuantities = ref({});
 
 const conditions = [
-  "Near Mint",
-  "Lightly Played",
-  "Moderately Played",
-  "Heavily Played",
-  "Damaged",
+  'Near Mint',
+  'Lightly Played',
+  'Moderately Played',
+  'Heavily Played',
+  'Damaged',
 ];
 
 const canSave = computed(
@@ -38,7 +47,8 @@ const canSave = computed(
     conditions.includes(condition.value) &&
     Number.isInteger(quantity.value) &&
     quantity.value > 0 &&
-    (purchasePrice.value === "" || (Number.isFinite(purchasePrice.value) && purchasePrice.value >= 0)) &&
+    (purchasePrice.value === '' ||
+      (Number.isFinite(purchasePrice.value) && purchasePrice.value >= 0)) &&
     validAssignments(binderQuantities.value, quantity.value),
 );
 
@@ -48,7 +58,7 @@ function resetForm() {
 
   condition.value = props.card.condition;
   quantity.value = props.card.quantity;
-  purchasePrice.value = props.card.purchasePrice ?? "";
+  purchasePrice.value = props.card.purchasePrice ?? '';
   favorite.value = Boolean(props.card.favorite);
   trade.value = Boolean(props.card.trade);
   confirmingRemoval.value = false;
@@ -65,12 +75,12 @@ function saveChanges() {
 
   card.condition = condition.value;
   card.quantity = quantity.value;
-  card.purchasePrice = purchasePrice.value === "" ? null : purchasePrice.value;
+  card.purchasePrice = purchasePrice.value === '' ? null : purchasePrice.value;
   card.favorite = favorite.value;
   card.trade = trade.value;
   saveAssignments(card, binderQuantities.value);
 
-  emit("close");
+  emit('close');
 }
 
 // Delete the selected owned entry only after the confirmation step.
@@ -79,16 +89,25 @@ function removeCard() {
   const index = collectionCards.value.findIndex((entry) => entry.entryId === props.card.entryId);
   if (index === -1) return;
   collectionCards.value.splice(index, 1);
-  emit("close");
+  emit('close');
 }
 
 const currentMarketPrice = computed(() => marketPrice(props.card));
-watch(() => props.card?.scryfallId, () => refreshMarketPrice(props.card), { immediate: true });
+watch(
+  () => props.card?.scryfallId,
+  () => refreshMarketPrice(props.card),
+  { immediate: true },
+);
 resetForm();
 </script>
 
 <template>
-  <ModalWrapper aria-labelledby="manage-card-title" id="manage-card-modal" large @close="emit('close')">
+  <ModalWrapper
+    aria-labelledby="manage-card-title"
+    id="manage-card-modal"
+    large
+    @close="emit('close')"
+  >
     <div class="modal-content">
       <div class="modal-header">
         <h2 id="manage-card-title" class="modal-title fs-5">Manage Card</h2>
@@ -123,7 +142,8 @@ resetForm();
                 type="number"
                 min="1"
                 step="1"
-                class="form-control" />
+                class="form-control"
+              />
             </div>
           </div>
         </section>
@@ -137,24 +157,42 @@ resetForm();
           </div>
           <div class="row g-3">
             <div class="col-12 col-md-6">
-              <label for="manage-purchase-price" class="form-label">Purchase price <span class="text-secondary small">(optional)</span></label>
+              <label for="manage-purchase-price" class="form-label"
+                >Purchase price <span class="text-secondary small">(optional)</span></label
+              >
               <div class="input-group">
                 <span class="input-group-text">$</span>
-                <input id="manage-purchase-price" v-model.number="purchasePrice" type="number"
-                  min="0" step="0.01" class="form-control" placeholder="Not recorded"
-                  aria-describedby="purchase-price-help" />
+                <input
+                  id="manage-purchase-price"
+                  v-model.number="purchasePrice"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="form-control"
+                  placeholder="Not recorded"
+                  aria-describedby="purchase-price-help"
+                />
               </div>
-              <p id="purchase-price-help" class="form-text mb-0">USD per copy. Leave blank for packs, gifts, or unknown costs.</p>
+              <p id="purchase-price-help" class="form-text mb-0">
+                USD per copy. Leave blank for packs, gifts, or unknown costs.
+              </p>
             </div>
             <div class="col-12 col-md-6">
               <div class="bg-light rounded p-3 h-100">
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
                   <span class="text-secondary">Market estimate</span>
-                  <button type="button" class="btn btn-outline-secondary btn-sm"
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm"
                     :disabled="marketState(card).status === 'loading'"
-                    @click="refreshMarketPrice(card, { force: true })">Refresh price</button>
+                    @click="refreshMarketPrice(card, { force: true })"
+                  >
+                    Refresh price
+                  </button>
                 </div>
-                <strong class="d-block fs-5 mt-2">{{ currentMarketPrice == null ? 'Unavailable' : '$' + currentMarketPrice.toFixed(2) }}</strong>
+                <strong class="d-block fs-5 mt-2">{{
+                  currentMarketPrice == null ? 'Unavailable' : '$' + currentMarketPrice.toFixed(2)
+                }}</strong>
                 <p class="form-text mb-0" role="status">
                   <span class="d-block">{{ marketNote(card) }}</span>
                   Estimates do not account for condition.
@@ -181,7 +219,8 @@ resetForm();
                 id="manage-favorite"
                 v-model="favorite"
                 type="checkbox"
-                class="form-check-input" />
+                class="form-check-input"
+              />
             </label>
             <label class="option-control" for="manage-trade">
               <span>
@@ -206,7 +245,8 @@ resetForm();
             <button
               type="button"
               class="btn btn-outline-secondary"
-              @click="confirmingRemoval = false">
+              @click="confirmingRemoval = false"
+            >
               Keep card
             </button>
             <button type="button" class="btn btn-danger" @click="removeCard">
@@ -218,7 +258,8 @@ resetForm();
           v-else
           type="button"
           class="btn btn-outline-danger"
-          @click="confirmingRemoval = true">
+          @click="confirmingRemoval = true"
+        >
           Remove from collection
         </button>
       </div>

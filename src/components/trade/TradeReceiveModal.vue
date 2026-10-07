@@ -1,31 +1,32 @@
 <script setup>
 // Looks up cards to receive and emits a draft entry to the Trade page.
-import ModalWrapper from "../ui/ModalWrapper.vue";
-import { computed, onBeforeUnmount, ref, watch } from "vue";
-import { rememberMarketPrinting } from "../../services/marketPrices.js";
-import CardSearch from "../cards/CardSearch.vue";
+import ModalWrapper from '../ui/ModalWrapper.vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { rememberMarketPrinting } from '../../services/marketPrices.js';
+import CardSearch from '../cards/CardSearch.vue';
+import { TradeEntry } from '../../models/TradeEntry.js';
 
-const emit = defineEmits(["add", "close"]);
-const name = ref("");
-const printingId = ref("");
-const finish = ref("");
-const condition = ref("Near Mint");
+const emit = defineEmits(['add', 'close']);
+const name = ref('');
+const printingId = ref('');
+const finish = ref('');
+const condition = ref('Near Mint');
 const quantity = ref(1);
 const conditions = [
-  "Near Mint",
-  "Lightly Played",
-  "Moderately Played",
-  "Heavily Played",
-  "Damaged",
+  'Near Mint',
+  'Lightly Played',
+  'Moderately Played',
+  'Heavily Played',
+  'Damaged',
 ];
 const finishLabels = {
-  nonfoil: "Nonfoil",
-  foil: "Foil",
-  etched: "Etched foil",
+  nonfoil: 'Nonfoil',
+  foil: 'Foil',
+  etched: 'Etched foil',
 };
 const printings = ref([]);
 const loadingPrintings = ref(false);
-const printingError = ref("");
+const printingError = ref('');
 
 let printingRequest;
 
@@ -33,10 +34,10 @@ let printingRequest;
 function clearPrintings() {
   printingRequest?.abort();
   printings.value = [];
-  printingId.value = "";
-  finish.value = "";
+  printingId.value = '';
+  finish.value = '';
   loadingPrintings.value = false;
-  printingError.value = "";
+  printingError.value = '';
 }
 
 /** Fetch paper printings for the exact selected name, including paginated results. */
@@ -50,7 +51,7 @@ async function loadPrintings(name) {
   const query = `!"${name}" game:paper`;
   let url =
     `https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}` +
-    "&unique=prints&order=released";
+    '&unique=prints&order=released';
 
   const results = [];
 
@@ -63,7 +64,7 @@ async function loadPrintings(name) {
       });
 
       if (!response.ok) {
-        throw new Error("Could not load printings.");
+        throw new Error('Could not load printings.');
       }
 
       const result = await response.json();
@@ -83,7 +84,7 @@ async function loadPrintings(name) {
     }
   } catch (error) {
     if (!request.signal.aborted) {
-      printingError.value = "Could not load printings. Select the card again to retry.";
+      printingError.value = 'Could not load printings. Select the card again to retry.';
     }
   } finally {
     if (!request.signal.aborted) {
@@ -99,7 +100,7 @@ const finishes = computed(() =>
   (selectedPrinting.value?.finishes ?? []).filter((value) => value in finishLabels),
 );
 watch(selectedPrinting, () => {
-  finish.value = finishes.value[0] ?? "";
+  finish.value = finishes.value[0] ?? '';
 });
 const canAdd = computed(
   () =>
@@ -115,22 +116,19 @@ function addCard() {
   if (!canAdd.value) return;
   const card = selectedPrinting.value;
   rememberMarketPrinting(card);
-  const priceKey = { nonfoil: "usd", foil: "usd_foil", etched: "usd_etched" }[finish.value];
+  const priceKey = { nonfoil: 'usd', foil: 'usd_foil', etched: 'usd_etched' }[finish.value];
   const rawPrice = card.prices?.[priceKey];
-  const price = rawPrice == null || rawPrice === "" ? null : Number(rawPrice);
-  emit("add", {
-    entryId: crypto.randomUUID(),
-    scryfallId: card.id,
-    name: card.name,
-    printing: `${card.set_name} — ${card.set.toUpperCase()} #${card.collector_number}`,
-    image: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? "",
+  const price = rawPrice == null || rawPrice === '' ? null : Number(rawPrice);
+  const entry = new TradeEntry(card, {
     finish: finish.value,
     finishLabel: finishLabels[finish.value],
     condition: condition.value,
     quantity: quantity.value,
     price: Number.isFinite(price) && price >= 0 ? price : null,
   });
-  emit("close");
+
+  emit('add', entry);
+  emit('close');
 }
 onBeforeUnmount(clearPrintings);
 </script>
@@ -140,7 +138,8 @@ onBeforeUnmount(clearPrintings);
     aria-labelledby="trade-receive-title"
     id="trade-receive-modal"
     large
-    @close="emit('close')">
+    @close="emit('close')"
+  >
     <div class="modal-content">
       <div class="modal-header">
         <h2 id="trade-receive-title" class="modal-title fs-5">Choose a card you receive</h2>
@@ -159,20 +158,22 @@ onBeforeUnmount(clearPrintings);
             v-model="name"
             class="mb-3"
             @update:model-value="clearPrintings"
-            @select="loadPrintings" />
+            @select="loadPrintings"
+          />
           <label for="receive-printing" class="form-label">Printing</label>
           <select
             id="receive-printing"
             v-model="printingId"
             class="form-select"
-            :disabled="loadingPrintings || !printings.length">
+            :disabled="loadingPrintings || !printings.length"
+          >
             <option value="">
               {{
                 loadingPrintings
-                  ? "Loading printings..."
+                  ? 'Loading printings...'
                   : printings.length
-                    ? "Select a printing"
-                    : "Select a card first"
+                    ? 'Select a printing'
+                    : 'Select a card first'
               }}
             </option>
             <option v-for="card in printings" :key="card.id" :value="card.id">
@@ -196,7 +197,8 @@ onBeforeUnmount(clearPrintings);
             id="receive-finish"
             v-model="finish"
             class="form-select mb-3"
-            :disabled="finishes.length < 2">
+            :disabled="finishes.length < 2"
+          >
             <option v-if="!finishes.length" value="">Select a printing first</option>
             <option v-for="value in finishes" :key="value" :value="value">
               {{ finishLabels[value] }}
@@ -219,7 +221,8 @@ onBeforeUnmount(clearPrintings);
                 type="number"
                 min="1"
                 step="1"
-                class="form-control" />
+                class="form-control"
+              />
             </div>
           </div>
         </section>

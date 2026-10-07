@@ -35,7 +35,8 @@ onBeforeUnmount(() => {
   <div ref="modalElement" class="modal" tabindex="-1" aria-hidden="true">
     <div
       class="modal-dialog modal-dialog-centered modal-dialog-scrollable"
-      :class="{ 'modal-lg': large }">
+      :class="{ 'modal-lg': large }"
+    >
       <slot />
     </div>
   </div>

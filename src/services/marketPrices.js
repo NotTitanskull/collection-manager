@@ -12,12 +12,24 @@ export function rememberMarketPrinting(printing) {
   quotes.value[printing.id] = {
     status: 'ready',
     prices: printing.prices ?? {},
+    details: { setCode: printing.set, collectorNumber: printing.collector_number, rarity: printing.rarity },
     checkedAt: Date.now(),
   };
 }
 
 export function marketState(card) {
   return quotes.value[card?.scryfallId] ?? { status: 'unknown', checkedAt: null };
+}
+
+// Legacy entries keep their saved printing label; cached metadata fills in rarity.
+export function printingDetails(card) {
+  const details = marketState(card).details ?? {};
+  const legacy = card?.printing?.match(/—\s*([^\s]+)\s+#(.+)$/);
+  return {
+    setCode: (card?.setCode ?? details.setCode ?? legacy?.[1] ?? '').toUpperCase(),
+    collectorNumber: card?.collectorNumber ?? details.collectorNumber ?? legacy?.[2] ?? '',
+    rarity: card?.rarity || details.rarity || '',
+  };
 }
 
 export function marketPrice(card) {
@@ -48,7 +60,7 @@ export function refreshMarketPrice(card, { force = false } = {}) {
   if (!force && cached.status === 'ready' && Date.now() - cached.checkedAt < CACHE_MS) {
     return Promise.resolve();
   }
-  quotes.value[id] = { status: 'loading', checkedAt: null };
+  quotes.value[id] = { status: 'loading', checkedAt: null, details: cached.details };
   const request = queue.then(async () => {
     const delay = Math.max(0, 100 - (Date.now() - lastRequestAt));
     if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
@@ -60,10 +72,11 @@ export function refreshMarketPrice(card, { force = false } = {}) {
       if (!response.ok) throw new Error('Market lookup failed.');
       const printing = await response.json();
       if (printing.id !== id) throw new Error('Unexpected printing.');
-      quotes.value[id] = { status: 'ready', prices: printing.prices ?? {}, checkedAt: Date.now() };
+      quotes.value[id] = { status: 'ready', prices: printing.prices ?? {}, checkedAt: Date.now(),
+        details: { setCode: printing.set, collectorNumber: printing.collector_number, rarity: printing.rarity } };
     } catch {
       // Failed refreshes never substitute a purchase cost or an old saved estimate.
-      quotes.value[id] = { status: 'error', checkedAt: null };
+      quotes.value[id] = { status: 'error', checkedAt: null, details: cached.details };
     } finally {
       pending.delete(id);
     }
