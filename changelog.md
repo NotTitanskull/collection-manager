@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-10-19
+
 ### Added
 
 - Added `services/storage.js` for loading and saving browser data and `services/savedData.js` for validating saved cards and binders.
