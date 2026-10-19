@@ -1,25 +1,11 @@
 <script setup>
-import ModalWrapper from '../ui/ModalWrapper.vue';
-import { binders } from '../../stores/binders.js';
-import { collectionCards } from '../../stores/collection.js';
-import { binderAssignments } from '../../utils/binderQuantities.js';
+import ModalWrapper from '../shared/ModalWrapper.vue';
 
 const props = defineProps({ binder: { type: Object, required: true } });
 const emit = defineEmits(['close', 'deleted']);
 
 function deleteBinder() {
   const id = props.binder.id;
-  const index = binders.value.findIndex((binder) => binder.id === id);
-  if (index === -1) return;
-
-  // Release this binder's allocations while preserving all owned copies.
-  for (const card of collectionCards.value) {
-    const assignments = binderAssignments(card);
-    delete assignments[id];
-    card.binderQuantities = assignments;
-    card.binderIds = Object.keys(assignments);
-  }
-  binders.value.splice(index, 1);
   emit('deleted', id);
 }
 </script>

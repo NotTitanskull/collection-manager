@@ -1,30 +1,6 @@
 import { CollectionEntry } from '../models/CollectionEntry.js';
 
-/**
- * One owned collection entry, which can represent several identical copies.
- * @typedef {Object} CollectionEntryData
- * @property {string} entryId Unique owned row ID, used for edits and Vue list keys.
- * @property {string} scryfallId Scryfall printing ID; several owned rows may share it.
- * @property {string} [setCode] Uppercase set code saved on newer entries.
- * @property {string} [collectorNumber] Collector number saved on newer entries.
- * @property {string} [rarity] Printing rarity saved on newer entries.
- * @property {string} name Card name.
- * @property {string} type Card type line.
- * @property {string} printing Human-readable set and collector number.
- * @property {string} image Card image URL.
- * @property {string} condition Condition shared by the copies in this entry.
- * @property {number} quantity Positive whole number of copies.
- * @property {'nonfoil'|'foil'|'etched'} [finish] Explicit finish on newer entries.
- * @property {boolean} isFoil Legacy finish flag retained for older saved entries.
- * @property {boolean} favorite Membership in the automatic Favorites binder.
- * @property {boolean} trade Whether the entry is marked available for trade.
- * @property {string[]} binderIds Compatibility list of assigned binder IDs.
- * @property {Object<string, number>} [binderQuantities] Copies assigned to each custom binder; total cannot exceed owned quantity.
- * @property {number|null} [purchasePrice] Optional purchase cost per copy in USD; null means not recorded.
- * @property {number|null} [price] Legacy saved estimate; not used as a purchase cost or current market price.
- */
-
-/** @type {CollectionEntryData[]} */
+/** @type {import('../models/CollectionEntry.js').CollectionEntryData[]} */
 // Each constructor call receives printing information followed by owned-copy details.
 // Prices remain legacy sample estimates, not purchase costs or live market quotes.
 export const sampleCards = [
@@ -50,7 +26,7 @@ export const sampleCards = [
       trade: true,
       binderIds: [],
       price: 18,
-    },
+    }
   ),
   new CollectionEntry(
     {
@@ -74,7 +50,7 @@ export const sampleCards = [
       trade: false,
       binderIds: [],
       price: 6.5,
-    },
+    }
   ),
   new CollectionEntry(
     {
@@ -98,6 +74,6 @@ export const sampleCards = [
       trade: false,
       binderIds: [],
       price: 11.5,
-    },
+    }
   ),
 ];

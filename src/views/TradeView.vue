@@ -1,138 +1,179 @@
 <script setup>
-import ConditionBadge from '../components/cards/ConditionBadge.vue';
 // Temporary trade comparison. All edits here affect the draft, not owned card quantities.
-import { computed, ref } from "vue";
-import { marketPrice, marketState, marketNote, refreshMarketPrice } from "../services/marketPrices.js";
-import { collectionCards } from "../stores/collection.js";
-import TradeReceiveModal from "../components/trade/TradeReceiveModal.vue";
-import TradePickerModal from "../components/trade/TradePickerModal.vue";
+import ConditionBadge from '../components/cards/ConditionBadge.vue';
+
+import { computed, ref } from 'vue';
+import {
+  marketPrice,
+  marketState,
+  marketNote,
+  refreshMarketPrice,
+} from '../services/marketPrices.js';
+import TradeReceiveModal from '../components/trade/TradeReceiveModal.vue';
+import TradePickerModal from '../components/trade/TradePickerModal.vue';
+
+const props = defineProps({
+  binders: { type: Array, required: true },
+  collectionCards: { type: Array, required: true },
+});
 
 const receivedCards = ref([]);
-const receivedPricedCards = computed(() => receivedCards.value.map(card => ({ ...card, price: marketPrice(card) })));
-const choosingGiven = ref(false);
+const choosingOffered = ref(false);
 const choosingReceived = ref(false);
-const receivedValid = computed(() =>
-  receivedCards.value.every((card) => Number.isInteger(card.quantity) && card.quantity > 0),
+const offeredCards = ref([]);
+
+const receivedPricedCards = computed(() =>
+  receivedCards.value.map((card) => ({ ...card, price: marketPrice(card) }))
 );
-const receivedMissing = computed(
-  () => receivedPricedCards.value.filter((card) => !hasPrice(card)).length,
+
+const receivedQuantitiesValid = computed(() =>
+  receivedCards.value.every((card) => Number.isInteger(card.quantity) && card.quantity > 0)
 );
+
+const receivedMissingPriceCount = computed(
+  () => receivedPricedCards.value.filter((card) => !hasPrice(card)).length
+);
+
 // Calculate in integer cents to reduce floating-point rounding errors.
 const receivedTotal = computed(
   () =>
     receivedPricedCards.value.reduce(
       (sum, card) => sum + (hasPrice(card) ? Math.round(card.price * 100) * card.quantity : 0),
-      0,
-    ) / 100,
+      0
+    ) / 100
 );
+
+const offeredEntryIds = computed(() => offeredCards.value.map((entry) => entry.entryId));
+
+// Join draft IDs to saved cards for display; the draft owns its own quantities.
+const offeredEntries = computed(() =>
+  offeredCards.value.flatMap((entry) => {
+    const card = props.collectionCards.find((card) => card.entryId === entry.entryId);
+    return card ? [{ ...entry, card: { ...card, price: marketPrice(card) } }] : [];
+  })
+);
+
+const offeredQuantitiesValid = computed(() =>
+  offeredEntries.value.every(
+    ({ quantity, card }) => Number.isInteger(quantity) && quantity > 0 && quantity <= card.quantity
+  )
+);
+
+const offeredMissingPriceCount = computed(
+  () => offeredEntries.value.filter(({ card }) => !hasPrice(card)).length
+);
+
+const offeredTotal = computed(
+  () =>
+    offeredEntries.value.reduce(
+      (sum, { card, quantity }) =>
+        sum + (hasPrice(card) ? Math.round(card.price * 100) * quantity : 0),
+      0
+    ) / 100
+);
+
+const pricedEntries = computed(() => [
+  ...offeredEntries.value.map((line) => line.card),
+  ...receivedCards.value,
+]);
+
+const refreshingPrices = computed(() =>
+  pricedEntries.value.some((card) => marketState(card).status === 'loading')
+);
+
 const comparison = computed(() => {
-  if (refreshingPrices.value) return "Fetching market prices…";
-  if (!validQuantities.value || !receivedValid.value)
-    return "Enter valid quantities on both sides.";
-  if (!lines.value.length || !receivedCards.value.length)
-    return "Add cards to both sides to compare estimated values.";
-  if (missingPrices.value || receivedMissing.value)
-    return "Comparison incomplete: some cards have unknown prices.";
-  const difference = Math.round((receivedTotal.value - knownTotal.value) * 100) / 100;
-  if (difference === 0) return "Both sides have the same estimated value.";
-  return `${difference > 0 ? "You receive" : "You give"} ${money(Math.abs(difference))} more in estimated value.`;
+  if (refreshingPrices.value) return 'Fetching market prices…';
+  if (!offeredQuantitiesValid.value || !receivedQuantitiesValid.value)
+    return 'Enter valid quantities on both sides.';
+  if (!offeredEntries.value.length || !receivedCards.value.length)
+    return 'Add cards to both sides to compare estimated values.';
+  if (offeredMissingPriceCount.value || receivedMissingPriceCount.value)
+    return 'Comparison incomplete: some cards have unknown prices.';
+  const difference = Math.round((receivedTotal.value - offeredTotal.value) * 100) / 100;
+  if (difference === 0) return 'Both sides have the same estimated value.';
+  return `${difference > 0 ? 'You receive' : 'You give'} ${formatCurrency(Math.abs(difference))} more in estimated value.`;
 });
+
 const comparisonTone = computed(() => {
   if (
     refreshingPrices.value ||
-    !validQuantities.value ||
-    !receivedValid.value ||
-    missingPrices.value ||
-    receivedMissing.value
+    !offeredQuantitiesValid.value ||
+    !receivedQuantitiesValid.value ||
+    offeredMissingPriceCount.value ||
+    receivedMissingPriceCount.value
   )
-    return "attention";
+    return 'attention';
   if (
-    !lines.value.length ||
+    !offeredEntries.value.length ||
     !receivedCards.value.length ||
-    receivedTotal.value === knownTotal.value
+    receivedTotal.value === offeredTotal.value
   )
-    return "neutral";
-  return receivedTotal.value > knownTotal.value ? "receive" : "give";
+    return 'neutral';
+  return receivedTotal.value > offeredTotal.value ? 'receive' : 'give';
 });
+
 // Merge matching printing, finish, and condition groups in the receiving draft.
-function addReceived(card) {
+function addReceivedCard(card) {
   const existing = receivedCards.value.find(
     (entry) =>
       entry.scryfallId === card.scryfallId &&
       entry.finish === card.finish &&
-      entry.condition === card.condition,
+      entry.condition === card.condition
   );
   if (existing && Number.isInteger(existing.quantity) && existing.quantity > 0)
     existing.quantity += card.quantity;
   else receivedCards.value.push(card);
   refreshMarketPrice(card);
 }
+
 // Remove a proposed incoming entry from this comparison only.
-function removeReceived(id) {
+function removeReceivedCard(id) {
   receivedCards.value = receivedCards.value.filter((card) => card.entryId !== id);
 }
-const offeredCards = ref([]);
-const selectedIds = computed(() => offeredCards.value.map((entry) => entry.entryId));
-// Join draft IDs to saved cards for display; the draft owns its own quantities.
-const lines = computed(() =>
-  offeredCards.value.flatMap((entry) => {
-    const card = collectionCards.value.find((card) => card.entryId === entry.entryId);
-    return card ? [{ ...entry, card: { ...card, price: marketPrice(card) } }] : [];
-  }),
-);
-const validQuantities = computed(() =>
-  lines.value.every(
-    ({ quantity, card }) => Number.isInteger(quantity) && quantity > 0 && quantity <= card.quantity,
-  ),
-);
-const missingPrices = computed(() => lines.value.filter(({ card }) => !hasPrice(card)).length);
-const knownTotal = computed(
-  () =>
-    lines.value.reduce(
-      (sum, { card, quantity }) =>
-        sum + (hasPrice(card) ? Math.round(card.price * 100) * quantity : 0),
-      0,
-    ) / 100,
-);
+
 // Zero is a valid price; null or non-finite values mean the price is unknown.
 function hasPrice(card) {
   return Number.isFinite(card.price) && card.price >= 0;
 }
+
 // Format a numeric estimate consistently as US dollars for display.
-function money(value) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
+function formatCurrency(value) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
   }).format(value);
 }
+
 // Add each eligible owned entry once, with a draft quantity of one copy.
-function addCards(ids) {
+function addOfferedCards(ids) {
   for (const entryId of ids) {
     if (
-      !selectedIds.value.includes(entryId) &&
-      collectionCards.value.some((card) => card.entryId === entryId && card.quantity > 0)
+      !offeredEntryIds.value.includes(entryId) &&
+      props.collectionCards.some((card) => card.entryId === entryId && card.quantity > 0)
     ) {
       offeredCards.value.push({ entryId, quantity: 1 });
-      refreshMarketPrice(collectionCards.value.find(card => card.entryId === entryId));
+      refreshMarketPrice(props.collectionCards.find((card) => card.entryId === entryId));
     }
   }
 }
+
 // Keep an empty input empty so validation can explain it rather than forcing zero.
-function setQuantity(entryId, value) {
+function setOfferedQuantity(entryId, value) {
   const entry = offeredCards.value.find((entry) => entry.entryId === entryId);
-  if (entry) entry.quantity = value === "" ? "" : Number(value);
+  if (entry) entry.quantity = value === '' ? '' : Number(value);
 }
+
 // Remove only a draft line; this does not delete an owned card.
-function removeCard(entryId) {
+function removeOfferedCard(entryId) {
   offeredCards.value = offeredCards.value.filter((entry) => entry.entryId !== entryId);
 }
-const pricedEntries = computed(() => [...lines.value.map(line => line.card), ...receivedCards.value]);
-const refreshingPrices = computed(() => pricedEntries.value.some(card => marketState(card).status === 'loading'));
+
 function refreshPrices() {
   for (const card of pricedEntries.value) refreshMarketPrice(card, { force: true });
 }
+
 function setReceivedQuantity(entryId, value) {
-  const card = receivedCards.value.find(card => card.entryId === entryId);
+  const card = receivedCards.value.find((card) => card.entryId === entryId);
   if (card) card.quantity = value === '' ? '' : Number(value);
 }
 </script>
@@ -141,8 +182,12 @@ function setReceivedQuantity(entryId, value) {
   <section class="trade-page">
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
       <h1>Trade comparison</h1>
-      <button type="button" class="btn btn-outline-secondary"
-        :disabled="!pricedEntries.length || refreshingPrices" @click="refreshPrices">
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        :disabled="!pricedEntries.length || refreshingPrices"
+        @click="refreshPrices"
+      >
         {{ refreshingPrices ? 'Refreshing prices…' : 'Refresh prices' }}
       </button>
     </div>
@@ -152,7 +197,7 @@ function setReceivedQuantity(entryId, value) {
     <div class="trade-summary mt-4" :class="`comparison-${comparisonTone}`" aria-live="polite">
       <div>
         <p class="comparison-label">
-          {{ comparisonTone === "attention" ? "Needs attention" : "Estimated value comparison" }}
+          {{ comparisonTone === 'attention' ? 'Needs attention' : 'Estimated value comparison' }}
         </p>
         <p class="comparison-message mb-0">{{ comparison }}</p>
       </div>
@@ -170,41 +215,48 @@ function setReceivedQuantity(entryId, value) {
           </div>
           <div class="trade-total" aria-live="polite">
             <small class="total-label">
-              {{ missingPrices ? "Known subtotal" : "Estimated total" }}
+              {{ offeredMissingPriceCount ? 'Known subtotal' : 'Estimated total' }}
             </small>
             <strong>
-              {{ validQuantities ? money(knownTotal) : "Check quantities" }}
+              {{ offeredQuantitiesValid ? formatCurrency(offeredTotal) : 'Check quantities' }}
             </strong>
-            <small v-if="missingPrices" class="d-block text-secondary">
-              {{ missingPrices }} unpriced
-              {{ missingPrices === 1 ? "entry" : "entries" }}
+            <small v-if="offeredMissingPriceCount" class="d-block text-secondary">
+              {{ offeredMissingPriceCount }} unpriced
+              {{ offeredMissingPriceCount === 1 ? 'entry' : 'entries' }}
             </small>
           </div>
         </div>
         <ul class="list-unstyled trade-card-list">
-          <li v-for="line in lines" :key="line.entryId" class="trade-card">
+          <li v-for="line in offeredEntries" :key="line.entryId" class="trade-card">
             <img
               v-if="line.card.image"
               class="trade-card-image"
               :src="line.card.image"
-              :alt="line.card.name" />
+              :alt="line.card.name"
+            />
             <div class="trade-card-details">
               <h3 class="h6 mb-1">{{ line.card.name }}</h3>
               <p>
                 {{ line.card.printing }} ·
                 {{
-                  line.card.finish === "etched"
-                    ? "Etched foil"
+                  line.card.finish === 'etched'
+                    ? 'Etched foil'
                     : line.card.isFoil
-                      ? "Foil"
-                      : "Nonfoil"
+                      ? 'Foil'
+                      : 'Nonfoil'
                 }}
               </p>
               <p>
                 <ConditionBadge :condition="line.card.condition" /> ·
-                {{ hasPrice(line.card) ? money(line.card.price) + " per copy" : "Price unknown" }}
+                {{
+                  hasPrice(line.card)
+                    ? formatCurrency(line.card.price) + ' per copy'
+                    : 'Price unknown'
+                }}
               </p>
               <p class="small text-secondary" role="status">{{ marketNote(line.card) }}</p>
+            </div>
+            <div class="trade-card-actions">
               <div class="trade-quantity mt-2">
                 <label :for="`trade-quantity-${line.entryId}`" class="small">
                   Quantity ({{ line.card.quantity }} owned)
@@ -222,28 +274,32 @@ function setReceivedQuantity(entryId, value) {
                     line.quantity < 1 ||
                     line.quantity > line.card.quantity
                   "
-                  @input="setQuantity(line.entryId, $event.target.value)" />
+                  @input="setOfferedQuantity(line.entryId, $event.target.value)"
+                />
               </div>
               <button
                 type="button"
-                class="btn btn-link text-danger px-0 btn-sm"
+                class="btn btn-outline-danger trade-remove-button"
                 :aria-label="`Remove ${line.card.name} from trade`"
-                @click="removeCard(line.entryId)">
-                Remove
+                :title="`Remove ${line.card.name} from trade`"
+                @click="removeOfferedCard(line.entryId)"
+              >
+                <i class="bi bi-trash" aria-hidden="true"></i>
               </button>
             </div>
           </li>
         </ul>
-        <p v-if="!lines.length" class="text-secondary mt-3">
+        <p v-if="!offeredEntries.length" class="text-secondary mt-3">
           Choose cards to estimate your side of the trade.
         </p>
-        <p v-if="!validQuantities" class="text-danger small mt-3" role="alert">
+        <p v-if="!offeredQuantitiesValid" class="text-danger small mt-3" role="alert">
           Use whole quantities between 1 and the number you own.
         </p>
         <button
           type="button"
           class="btn btn-outline-primary trade-add-button"
-          @click="choosingGiven = true">
+          @click="choosingOffered = true"
+        >
           + Choose cards
         </button>
       </section>
@@ -259,14 +315,14 @@ function setReceivedQuantity(entryId, value) {
           </div>
           <div class="trade-total" aria-live="polite">
             <small class="total-label">
-              {{ receivedMissing ? "Known subtotal" : "Estimated total" }}
+              {{ receivedMissingPriceCount ? 'Known subtotal' : 'Estimated total' }}
             </small>
             <strong>
-              {{ receivedValid ? money(receivedTotal) : "Check quantities" }}
+              {{ receivedQuantitiesValid ? formatCurrency(receivedTotal) : 'Check quantities' }}
             </strong>
-            <small v-if="receivedMissing" class="d-block text-secondary">
-              {{ receivedMissing }} unpriced
-              {{ receivedMissing === 1 ? "entry" : "entries" }}
+            <small v-if="receivedMissingPriceCount" class="d-block text-secondary">
+              {{ receivedMissingPriceCount }} unpriced
+              {{ receivedMissingPriceCount === 1 ? 'entry' : 'entries' }}
             </small>
           </div>
         </div>
@@ -278,9 +334,11 @@ function setReceivedQuantity(entryId, value) {
               <p>{{ card.printing }} · {{ card.finishLabel }}</p>
               <p>
                 <ConditionBadge :condition="card.condition" /> ·
-                {{ hasPrice(card) ? money(card.price) + " per copy" : "Price unknown" }}
+                {{ hasPrice(card) ? formatCurrency(card.price) + ' per copy' : 'Price unknown' }}
               </p>
               <p class="small text-secondary" role="status">{{ marketNote(card) }}</p>
+            </div>
+            <div class="trade-card-actions">
               <div class="trade-quantity mt-2">
                 <label :for="`receive-qty-${card.entryId}`" class="small">Quantity</label>
                 <input
@@ -291,14 +349,17 @@ function setReceivedQuantity(entryId, value) {
                   min="1"
                   step="1"
                   class="form-control form-control-sm"
-                  :aria-invalid="!Number.isInteger(card.quantity) || card.quantity < 1" />
+                  :aria-invalid="!Number.isInteger(card.quantity) || card.quantity < 1"
+                />
               </div>
               <button
                 type="button"
-                class="btn btn-link text-danger px-0 btn-sm"
+                class="btn btn-outline-danger trade-remove-button"
                 :aria-label="`Remove ${card.name} from receiving side`"
-                @click="removeReceived(card.entryId)">
-                Remove
+                :title="`Remove ${card.name} from receiving side`"
+                @click="removeReceivedCard(card.entryId)"
+              >
+                <i class="bi bi-trash" aria-hidden="true"></i>
               </button>
             </div>
           </li>
@@ -306,13 +367,14 @@ function setReceivedQuantity(entryId, value) {
         <p v-if="!receivedCards.length" class="text-secondary mt-3">
           Find the cards offered by the other person.
         </p>
-        <p v-if="!receivedValid" class="small text-danger mt-3" role="alert">
+        <p v-if="!receivedQuantitiesValid" class="small text-danger mt-3" role="alert">
           Use positive whole quantities.
         </p>
         <button
           type="button"
           class="btn btn-outline-primary trade-add-button"
-          @click="choosingReceived = true">
+          @click="choosingReceived = true"
+        >
           + Find a card
         </button>
       </section>
@@ -324,28 +386,65 @@ function setReceivedQuantity(entryId, value) {
     </p>
     <TradeReceiveModal
       v-if="choosingReceived"
-      @add="addReceived"
-      @close="choosingReceived = false" />
+      @add="addReceivedCard"
+      @close="choosingReceived = false"
+    />
     <TradePickerModal
-      v-if="choosingGiven"
-      :selected-ids="selectedIds"
-      @add="addCards"
-      @close="choosingGiven = false" />
+      :collection-cards="collectionCards"
+      v-if="choosingOffered"
+      :selected-ids="offeredEntryIds"
+      @add="addOfferedCards"
+      @close="choosingOffered = false"
+    />
   </section>
 </template>
 
 <style scoped lang="scss">
-// Add giving/receiving accents and local controls to the shared trade layout.
+@use '../styles/trade';
+// Giving/receiving accents and controls for this page.
+.trade-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 1rem;
+}
+.trade-card-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  min-width: 0;
+}
 .trade-quantity {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
+  flex-direction: column;
+  align-items: flex-end;
+  width: auto;
+  flex: 0 0 auto;
+  gap: 0.35rem;
+  label {
+    text-align: right;
+  }
   input {
-    width: 5rem;
+    width: 4.75rem;
   }
 }
-// Shared layout remains in _trade.scss; these accents identify each side.
+.trade-remove-button {
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.trade-remove-button i {
+  font-size: 1rem;
+  line-height: 1;
+  pointer-events: none;
+}
+// The page layout is imported from styles/_trade.scss.
 .trade-give {
   --side-color: #885008;
   --side-tint: #fff6e7;

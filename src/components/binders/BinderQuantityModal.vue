@@ -1,50 +1,60 @@
 <script setup>
 import { computed, ref } from 'vue';
 import CardSummary from '../cards/CardSummary.vue';
-import ModalWrapper from '../ui/ModalWrapper.vue';
-import { collectionCards } from '../../stores/collection.js';
+import ModalWrapper from '../shared/ModalWrapper.vue';
 import {
   assignedQuantity,
   availableQuantity,
   binderAssignments,
   validAssignments,
   saveAssignments,
-} from '../../utils/binderQuantities.js';
+} from '../../utils/binderAssignments.js';
+
 const props = defineProps({
   card: { type: Object, required: true },
   binder: { type: Object, required: true },
 });
-const emit = defineEmits(['close']);
+
+const emit = defineEmits(['close', 'update-card']);
+
 const quantity = ref(assignedQuantity(props.card, props.binder.id));
 const confirmingRemoval = ref(false);
+
 const maximum = computed(() => availableQuantity(props.card, props.binder.id));
+
 const proposedAssignments = computed(() => {
   const assignments = binderAssignments(props.card);
   if (quantity.value) assignments[props.binder.id] = quantity.value;
   else delete assignments[props.binder.id];
   return assignments;
 });
+
 const valid = computed(
   () =>
     Number.isInteger(quantity.value) &&
     quantity.value >= 0 &&
     quantity.value <= maximum.value &&
-    validAssignments(proposedAssignments.value, props.card.quantity),
+    validAssignments(proposedAssignments.value, props.card.quantity)
 );
+
 function save() {
   if (!valid.value) return;
-  const card = collectionCards.value.find((card) => card.entryId === props.card.entryId);
-  if (!card) return;
+  const card = { ...props.card };
   const assignments = binderAssignments(card);
   if (quantity.value) assignments[props.binder.id] = quantity.value;
   else delete assignments[props.binder.id];
-  if (saveAssignments(card, assignments)) emit('close');
+  if (saveAssignments(card, assignments)) {
+    emit('update-card', card);
+    emit('close');
+  }
 }
+
 function requestSave() {
   if (confirmingRemoval.value || !valid.value) return;
   if (quantity.value === 0) confirmingRemoval.value = true;
   else save();
 }
+
 function removeFromBinder() {
   if (!confirmingRemoval.value) return;
   quantity.value = 0;

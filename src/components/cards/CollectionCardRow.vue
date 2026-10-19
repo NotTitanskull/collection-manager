@@ -1,6 +1,9 @@
 <script setup>
-import ConditionBadge from './ConditionBadge.vue';
 // Presentational row: receives a card prop and emits manage when the user opens it.
+import ConditionBadge from './ConditionBadge.vue';
+
+// Presentational row: receives a card prop and emits manage when the user opens it.
+
 defineProps({
   displayedQuantity: { type: Number, default: null },
   card: {
@@ -48,7 +51,7 @@ const emit = defineEmits(['manage']);
 
 <style scoped lang="scss">
 // Row-specific presentation and interaction feedback, isolated from other buttons.
-@use '../../assets/scss/variables' as theme;
+@use '../../styles/variables' as theme;
 
 .collection-row {
   border-bottom: 1px solid theme.$row-border;

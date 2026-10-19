@@ -1,34 +1,43 @@
 <script setup>
 // Looks up cards to receive and emits a draft entry to the Trade page.
-import ModalWrapper from '../ui/ModalWrapper.vue';
+import { conditions, finishLabels } from '../../data/cardOptions.js';
+import ModalWrapper from '../shared/ModalWrapper.vue';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { fetchCardPrintings } from '../../services/cardPrintings.js';
 import { rememberMarketPrinting } from '../../services/marketPrices.js';
 import CardSearch from '../cards/CardSearch.vue';
 import { TradeEntry } from '../../models/TradeEntry.js';
 
 const emit = defineEmits(['add', 'close']);
+
 const name = ref('');
 const printingId = ref('');
 const finish = ref('');
 const condition = ref('Near Mint');
 const quantity = ref(1);
-const conditions = [
-  'Near Mint',
-  'Lightly Played',
-  'Moderately Played',
-  'Heavily Played',
-  'Damaged',
-];
-const finishLabels = {
-  nonfoil: 'Nonfoil',
-  foil: 'Foil',
-  etched: 'Etched foil',
-};
+
 const printings = ref([]);
 const loadingPrintings = ref(false);
 const printingError = ref('');
-
 let printingRequest;
+
+const selectedPrinting = computed(() =>
+  printings.value.find((card) => card.id === printingId.value)
+);
+
+const finishes = computed(() =>
+  (selectedPrinting.value?.finishes ?? []).filter((value) => value in finishLabels)
+);
+
+const canAdd = computed(
+  () =>
+    !loadingPrintings.value &&
+    selectedPrinting.value &&
+    finishes.value.includes(finish.value) &&
+    conditions.includes(condition.value) &&
+    Number.isInteger(quantity.value) &&
+    quantity.value > 0
+);
 
 /** Cancel an obsolete request and clear choices that belong to the previous card. */
 function clearPrintings() {
@@ -48,36 +57,8 @@ async function loadPrintings(name) {
   printingRequest = request;
   loadingPrintings.value = true;
 
-  const query = `!"${name}" game:paper`;
-  let url =
-    `https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}` +
-    '&unique=prints&order=released';
-
-  const results = [];
-
   try {
-    while (url) {
-      if (request.signal.aborted) return;
-
-      const response = await fetch(url, {
-        signal: request.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error('Could not load printings.');
-      }
-
-      const result = await response.json();
-
-      if (request.signal.aborted) return;
-
-      results.push(...result.data);
-      url = result.has_more ? result.next_page : null;
-
-      if (url) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-    }
+    const results = await fetchCardPrintings(name, { signal: request.signal });
 
     if (!request.signal.aborted) {
       printings.value = results;
@@ -93,24 +74,6 @@ async function loadPrintings(name) {
   }
 }
 
-const selectedPrinting = computed(() =>
-  printings.value.find((card) => card.id === printingId.value),
-);
-const finishes = computed(() =>
-  (selectedPrinting.value?.finishes ?? []).filter((value) => value in finishLabels),
-);
-watch(selectedPrinting, () => {
-  finish.value = finishes.value[0] ?? '';
-});
-const canAdd = computed(
-  () =>
-    !loadingPrintings.value &&
-    selectedPrinting.value &&
-    finishes.value.includes(finish.value) &&
-    conditions.includes(condition.value) &&
-    Number.isInteger(quantity.value) &&
-    quantity.value > 0,
-);
 // Build a draft entry using the selected finish’s price; unknown prices remain null.
 function addCard() {
   if (!canAdd.value) return;
@@ -130,6 +93,11 @@ function addCard() {
   emit('add', entry);
   emit('close');
 }
+
+watch(selectedPrinting, () => {
+  finish.value = finishes.value[0] ?? '';
+});
+
 onBeforeUnmount(clearPrintings);
 </script>
 

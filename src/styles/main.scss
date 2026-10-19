@@ -1,7 +1,6 @@
 // Shared styles compiled by Vite. Component-only rules live in scoped Vue style blocks.
-@use "navigation";
-@use "forms";
-@use "trade";
+@use 'navigation';
+@use 'forms';
 
 // Keep the last page content clear of the floating Add action.
 .page-with-add-action {

@@ -1,8 +1,8 @@
 <script setup>
 // Edits a copy of the selected entry so Cancel leaves the saved collection unchanged.
-import ModalWrapper from '../ui/ModalWrapper.vue';
+import { conditions } from '../../data/cardOptions.js';
+import ModalWrapper from '../shared/ModalWrapper.vue';
 import { computed, ref, watch } from 'vue';
-import { collectionCards } from '../../stores/collection.js';
 import {
   marketPrice,
   marketState,
@@ -13,18 +13,20 @@ import {
   binderAssignments,
   validAssignments,
   saveAssignments,
-} from '../../utils/binderQuantities.js';
+} from '../../utils/binderAssignments.js';
 import CardSummary from './CardSummary.vue';
 import BinderPicker from '../binders/BinderPicker.vue';
 
 const props = defineProps({
+  binders: { type: Array, required: true },
   card: {
     type: Object,
     default: null,
   },
 });
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'update-card', 'delete-card']);
+
 const condition = ref('');
 const quantity = ref(1);
 const purchasePrice = ref('');
@@ -32,14 +34,6 @@ const favorite = ref(false);
 const trade = ref(false);
 const confirmingRemoval = ref(false);
 const binderQuantities = ref({});
-
-const conditions = [
-  'Near Mint',
-  'Lightly Played',
-  'Moderately Played',
-  'Heavily Played',
-  'Damaged',
-];
 
 const canSave = computed(
   () =>
@@ -49,8 +43,10 @@ const canSave = computed(
     quantity.value > 0 &&
     (purchasePrice.value === '' ||
       (Number.isFinite(purchasePrice.value) && purchasePrice.value >= 0)) &&
-    validAssignments(binderQuantities.value, quantity.value),
+    validAssignments(binderQuantities.value, quantity.value)
 );
+
+const currentMarketPrice = computed(() => marketPrice(props.card));
 
 // Copy the prop into editable fields; copy binder assignments so controls do not mutate saved data.
 function resetForm() {
@@ -65,13 +61,11 @@ function resetForm() {
   binderQuantities.value = binderAssignments(props.card);
 }
 
-// Find the owned entry by entryId and apply only the editable fields.
+// Emit an edited copy. App.vue applies it to the owned entry with this ID.
 function saveChanges() {
   if (!canSave.value) return;
 
-  const card = collectionCards.value.find((entry) => entry.entryId === props.card.entryId);
-
-  if (!card) return;
+  const card = { ...props.card };
 
   card.condition = condition.value;
   card.quantity = quantity.value;
@@ -80,24 +74,23 @@ function saveChanges() {
   card.trade = trade.value;
   saveAssignments(card, binderQuantities.value);
 
+  emit('update-card', card);
   emit('close');
 }
 
 // Delete the selected owned entry only after the confirmation step.
 function removeCard() {
   if (!props.card || !confirmingRemoval.value) return;
-  const index = collectionCards.value.findIndex((entry) => entry.entryId === props.card.entryId);
-  if (index === -1) return;
-  collectionCards.value.splice(index, 1);
+  emit('delete-card', props.card.entryId);
   emit('close');
 }
 
-const currentMarketPrice = computed(() => marketPrice(props.card));
 watch(
   () => props.card?.scryfallId,
   () => refreshMarketPrice(props.card),
-  { immediate: true },
+  { immediate: true }
 );
+
 resetForm();
 </script>
 
@@ -231,7 +224,11 @@ resetForm();
             </label>
           </div>
           <div class="border-top pt-3 mt-3">
-            <BinderPicker v-model="binderQuantities" :owned-quantity="quantity" />
+            <BinderPicker
+              :binders="binders"
+              v-model="binderQuantities"
+              :owned-quantity="quantity"
+            />
           </div>
         </section>
 

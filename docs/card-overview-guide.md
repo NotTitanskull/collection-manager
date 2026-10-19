@@ -104,15 +104,15 @@ the parent decides how to navigate.
 
 The CSS separates normal preview sizing from full-image sizing:
 
-| Rule | Purpose |
-| --- | --- |
-| `width: min(100%, 16rem)` | Limit the preview button to its container width or 16 root-font units, whichever is smaller. |
-| `max-height: 36dvh` | Limit the preview image to 36% of the dynamic viewport height. |
-| `margin-inline: auto` | Center the preview image horizontally in the button. |
-| `:focus-visible` | Show an outline when the button needs a visible focus indicator. |
-| `calc(100dvh - 12rem)` | Give the full image a larger height allowance while reserving room for modal controls. |
-| `object-fit: contain` | Fit the complete image without cropping it. |
-| `@media (max-height: 700px)` | Reduce ordinary preview size and padding in short windows. |
+| Rule                         | Purpose                                                                                      |
+| ---------------------------- | -------------------------------------------------------------------------------------------- |
+| `width: min(100%, 16rem)`    | Limit the preview button to its container width or 16 root-font units, whichever is smaller. |
+| `max-height: 36dvh`          | Limit the preview image to 36% of the dynamic viewport height.                               |
+| `margin-inline: auto`        | Center the preview image horizontally in the button.                                         |
+| `:focus-visible`             | Show an outline when the button needs a visible focus indicator.                             |
+| `calc(100dvh - 12rem)`       | Give the full image a larger height allowance while reserving room for modal controls.       |
+| `object-fit: contain`        | Fit the complete image without cropping it.                                                  |
+| `@media (max-height: 700px)` | Reduce ordinary preview size and padding in short windows.                                   |
 
 `rem` depends on the root font size, commonly 16px. `dvh` depends on the current viewport
 height. These are maximum dimensions, not a command to stretch every image to that size.
@@ -183,5 +183,5 @@ receive generated IDs. Binder arrays and quantity maps are copied for each owned
 
 Constructors do not make objects reactive or save them. Vue tracks them when they
 enter reactive state. JSON loading returns plain objects, which remain supported
-because the app uses their fields rather than class identity or methods. The store
+because the app uses their fields rather than class identity or methods. The storage loader
 clones samples before using them so edits cannot modify the starting examples.

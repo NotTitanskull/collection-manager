@@ -1,33 +1,41 @@
 <script setup>
-import ConditionBadge from '../cards/ConditionBadge.vue';
 // Assigns existing collection entries to a binder without duplicating the cards.
-import ModalWrapper from '../ui/ModalWrapper.vue';
+import ConditionBadge from '../cards/ConditionBadge.vue';
+
+import ModalWrapper from '../shared/ModalWrapper.vue';
 import { computed, ref } from 'vue';
 import {
   assignedQuantity,
   availableQuantity,
   binderAssignments,
   saveAssignments,
-} from '../../utils/binderQuantities.js';
-import { collectionCards } from '../../stores/collection.js';
+} from '../../utils/binderAssignments.js';
 
-const props = defineProps({ binder: { type: Object, default: null } });
-const emit = defineEmits(['close']);
+const props = defineProps({
+  collectionCards: { type: Array, required: true },
+  binder: { type: Object, default: null },
+});
+
+const emit = defineEmits(['close', 'update-card']);
+
 const search = ref('');
 const sortOrder = ref('name-asc');
 const selectedIds = ref([]);
 const quantities = ref({});
+
 const availableCards = computed(() =>
-  collectionCards.value.filter((card) => availableQuantity(card) > 0),
+  props.collectionCards.filter((card) => availableQuantity(card) > 0)
 );
+
 const matchingCards = computed(() => {
   const query = search.value.trim().toLowerCase();
-  return availableCards.value.filter((card) =>
-    `${card.name} ${card.printing}`.toLowerCase().includes(query),
-  ).sort((a, b) => sortOrder.value === 'name-asc'
-    ? a.name.localeCompare(b.name)
-    : b.name.localeCompare(a.name));
+  return availableCards.value
+    .filter((card) => `${card.name} ${card.printing}`.toLowerCase().includes(query))
+    .sort((a, b) =>
+      sortOrder.value === 'name-asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
+    );
 });
+
 const canAdd = computed(
   () =>
     selectedIds.value.length > 0 &&
@@ -37,8 +45,9 @@ const canAdd = computed(
       return (
         card && Number.isInteger(quantity) && quantity > 0 && quantity <= availableQuantity(card)
       );
-    }),
+    })
 );
+
 function addCards() {
   if (!props.binder || !canAdd.value) return;
   for (const card of availableCards.value) {
@@ -46,7 +55,8 @@ function addCards() {
     const assignments = binderAssignments(card);
     assignments[props.binder.id] =
       assignedQuantity(card, props.binder.id) + (quantities.value[card.entryId] ?? 1);
-    saveAssignments(card, assignments);
+    const updated = { ...card };
+    if (saveAssignments(updated, assignments)) emit('update-card', updated);
   }
   emit('close');
 }

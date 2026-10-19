@@ -9,7 +9,6 @@ const suggestions = ref([]);
 const loading = ref(false);
 const notice = ref('');
 const highlighted = ref(-1);
-
 let timer;
 let controller;
 
@@ -22,11 +21,12 @@ function closeSuggestions() {
   highlighted.value = -1;
 }
 
-/** Update the model immediately, but wait briefly before requesting suggestions. */
+/** Search committed text only; v-model handles native text composition. */
 function updateSearch(event) {
+  if (event.isComposing || event.target.composing) return;
+
   closeSuggestions();
   notice.value = '';
-  name.value = event.target.value;
 
   const query = event.target.value.trim();
 
@@ -44,7 +44,7 @@ async function fetchSuggestions(query) {
   try {
     const response = await fetch(
       `https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(query)}`,
-      { signal: request.signal },
+      { signal: request.signal }
     );
 
     if (!response.ok) {
@@ -102,6 +102,29 @@ function selectHighlighted() {
   if (suggestion) selectCard(suggestion);
 }
 
+/** Let native text suggestions finish before handling the card list's shortcuts. */
+function handleKeydown(event) {
+  // Older Safari versions can report isComposing=false for the confirming key.
+  // keyCode 229 is a compatibility fallback for that native composition event.
+  if (event.isComposing || event.target.composing || event.keyCode === 229) {
+    // Keep Escape from dismissing the Bootstrap modal while native input owns it.
+    // Do not preventDefault: the browser still needs to accept or dismiss its suggestion.
+    event.stopPropagation();
+    return;
+  }
+
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    if (!suggestions.value.length) return;
+    event.preventDefault();
+    moveSuggestion(event.key === 'ArrowDown' ? 1 : -1);
+  } else if (event.key === 'Enter') {
+    event.preventDefault();
+    selectHighlighted();
+  } else if (event.key === 'Escape') {
+    dismissSuggestions(event);
+  }
+}
+
 onBeforeUnmount(closeSuggestions);
 </script>
 
@@ -111,7 +134,7 @@ onBeforeUnmount(closeSuggestions);
 
     <input
       id="add-card-name"
-      :value="name"
+      v-model="name"
       type="search"
       class="form-control"
       :class="{ 'has-suggestions': loading || suggestions.length > 0 }"
@@ -122,12 +145,10 @@ onBeforeUnmount(closeSuggestions);
       aria-controls="card-suggestions"
       :aria-expanded="suggestions.length > 0"
       :aria-activedescendant="highlighted >= 0 ? `card-option-${highlighted}` : undefined"
+      @compositionstart="closeSuggestions"
       @input="updateSearch"
       @blur="closeSuggestions"
-      @keydown.down.prevent="moveSuggestion(1)"
-      @keydown.up.prevent="moveSuggestion(-1)"
-      @keydown.enter.prevent="selectHighlighted"
-      @keydown.escape="dismissSuggestions"
+      @keydown="handleKeydown"
     />
 
     <div v-if="loading || suggestions.length" class="card-suggestions">
@@ -165,7 +186,7 @@ onBeforeUnmount(closeSuggestions);
 
 <style scoped lang="scss">
 // Position the autocomplete list above nearby content and show the keyboard highlight.
-@use '../../assets/scss/variables' as theme;
+@use '../../styles/variables' as theme;
 
 .card-suggestions {
   position: relative;

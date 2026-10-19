@@ -6,16 +6,26 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test tests/*.test.js",
+    "format:check": "prettier --check \"src/**/*.{js,vue,scss,css,html,json,md}\"",
+    "format": "prettier --write \"src/**/*.{js,vue,scss,css,html,json,md}\""
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.9",
+    "prettier": "^3.9.9",
     "sass": "1.104.1",
     "vite": "^8.3.0"
   },
   "dependencies": {
     "bootstrap": "5.3.8",
+    "bootstrap-icons": "^1.13.1",
     "vue": "^3.5.43",
     "vue-router": "^5.3.1"
+  },
+  "type": "module",
+  "allowScripts": {
+    "@parcel/watcher@2.6.0": true,
+    "fsevents@2.3.3": true
   }
 }

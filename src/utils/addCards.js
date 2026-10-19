@@ -1,18 +1,27 @@
-import { binderAssignments } from './binderQuantities.js';
+import { binderAssignments } from './binderAssignments.js';
 
 // Legacy saved entries use isFoil instead of an explicit finish.
 function finishOf(card) {
   return card.finish ?? (card.isFoil ? 'foil' : 'nonfoil');
 }
 
-// Keep distinct printings, treatments, conditions, and purchase costs separate.
+/**
+ * Add owned entries, merging only matching printing, finish, condition, and purchase cost.
+ * Mutates cards and matching existing entries; newly appended entries are not cloned.
+ * Binder assignments and favorite/trade flags are preserved when merging.
+ * @param {import('../models/CollectionEntry.js').CollectionEntryData[]} cards Collection to update.
+ * @param {import('../models/CollectionEntry.js').CollectionEntryData[]} entries Validated new entries.
+ * @returns {void}
+ */
 export function addCollectionEntries(cards, entries) {
   for (const entry of entries) {
-    const existing = cards.find(card =>
-      card.scryfallId && card.scryfallId === entry.scryfallId &&
-      finishOf(card) === finishOf(entry) &&
-      card.condition === entry.condition &&
-      (card.purchasePrice ?? null) === (entry.purchasePrice ?? null),
+    const existing = cards.find(
+      (card) =>
+        card.scryfallId &&
+        card.scryfallId === entry.scryfallId &&
+        finishOf(card) === finishOf(entry) &&
+        card.condition === entry.condition &&
+        (card.purchasePrice ?? null) === (entry.purchasePrice ?? null)
     );
     if (!existing) {
       cards.push(entry);

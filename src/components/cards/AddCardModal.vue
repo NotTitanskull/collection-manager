@@ -1,24 +1,72 @@
 <script setup>
 // Builds a temporary draft, looks up a printing, then saves owned entries to the collection.
-import ModalWrapper from '../ui/ModalWrapper.vue';
+import { conditions, finishLabels } from '../../data/cardOptions.js';
+import ModalWrapper from '../shared/ModalWrapper.vue';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import CardSearch from './CardSearch.vue';
-import { totalAssigned, validAssignments } from '../../utils/binderQuantities.js';
+import { totalAssigned, validAssignments } from '../../utils/binderAssignments.js';
 import BinderPicker from '../binders/BinderPicker.vue';
+import { fetchCardPrintings } from '../../services/cardPrintings.js';
 import { rememberMarketPrinting } from '../../services/marketPrices.js';
-import { collectionCards } from '../../stores/collection.js';
-import { addCollectionEntries } from '../../utils/collectionEntries.js';
 import { CollectionEntry } from '../../models/CollectionEntry.js';
 
-const props = defineProps({ initialCard: { type: Object, default: null } });
+const props = defineProps({
+  binders: { type: Array, required: true },
+  initialCard: { type: Object, default: null },
+});
 
-const conditions = [
-  'Near Mint',
-  'Lightly Played',
-  'Moderately Played',
-  'Heavily Played',
-  'Damaged',
-];
+const emit = defineEmits(['close', 'add-cards']);
+
+// Local form state is separate from saved cards until Add Card is submitted.
+const draft = ref({
+  binderQuantities: {},
+  name: props.initialCard?.name ?? '',
+  printingId: '',
+  copies: [createCopyRow()],
+  finish: '',
+  favorite: false,
+  trade: false,
+});
+
+const printings = ref([]);
+const loadingPrintings = ref(false);
+const printingError = ref('');
+let printingRequest;
+
+const selectedPrinting = computed(() =>
+  printings.value.find((printing) => printing.id === draft.value.printingId)
+);
+
+const finishes = computed(() =>
+  (selectedPrinting.value?.finishes ?? []).filter((finish) => finish in finishLabels)
+);
+
+const draftQuantity = computed(() =>
+  draft.value.copies.reduce(
+    (sum, copy) => sum + (Number.isInteger(copy.quantity) && copy.quantity > 0 ? copy.quantity : 0),
+    0
+  )
+);
+
+const canAddCard = computed(() => {
+  const printing = selectedPrinting.value;
+  const finish = draft.value.finish;
+
+  return (
+    !loadingPrintings.value &&
+    Boolean(printing?.finishes?.includes(finish)) &&
+    draft.value.copies.length > 0 &&
+    validAssignments(draft.value.binderQuantities, draftQuantity.value) &&
+    draft.value.copies.every(
+      (copy) =>
+        conditions.includes(copy.condition) &&
+        Number.isInteger(copy.quantity) &&
+        copy.quantity > 0 &&
+        (copy.purchasePrice === '' ||
+          (Number.isFinite(copy.purchasePrice) && copy.purchasePrice >= 0))
+    )
+  );
+});
 
 /** Create a stable row ID so Vue can track inputs when another row is removed. */
 function createCopyRow() {
@@ -42,23 +90,6 @@ function removeCopyRow(id) {
   draft.value.copies = draft.value.copies.filter((copy) => copy.id !== id);
 }
 
-// Local form state is separate from saved cards until Add Card is submitted.
-const draft = ref({
-  binderQuantities: {},
-  name: props.initialCard?.name ?? '',
-  printingId: '',
-  copies: [createCopyRow()],
-  finish: '',
-  favorite: false,
-  trade: false,
-});
-
-const printings = ref([]);
-const loadingPrintings = ref(false);
-const printingError = ref('');
-
-let printingRequest;
-
 /** Cancel an obsolete request and clear choices that belong to the previous card. */
 function clearPrintings() {
   printingRequest?.abort();
@@ -77,36 +108,8 @@ async function loadPrintings(name) {
   printingRequest = request;
   loadingPrintings.value = true;
 
-  const query = `!"${name}" game:paper`;
-  let url =
-    `https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}` +
-    '&unique=prints&order=released';
-
-  const results = [];
-
   try {
-    while (url) {
-      if (request.signal.aborted) return;
-
-      const response = await fetch(url, {
-        signal: request.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error('Could not load printings.');
-      }
-
-      const result = await response.json();
-
-      if (request.signal.aborted) return;
-
-      results.push(...result.data);
-      url = result.has_more ? result.next_page : null;
-
-      if (url) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-    }
+    const results = await fetchCardPrintings(name, { signal: request.signal });
 
     if (!request.signal.aborted) {
       printings.value = results;
@@ -127,57 +130,6 @@ async function loadPrintings(name) {
     }
   }
 }
-
-const selectedPrinting = computed(() =>
-  printings.value.find((printing) => printing.id === draft.value.printingId),
-);
-
-const finishLabels = {
-  nonfoil: 'Nonfoil',
-  foil: 'Foil',
-  etched: 'Etched foil',
-};
-const finishes = computed(() =>
-  (selectedPrinting.value?.finishes ?? []).filter((finish) => finish in finishLabels),
-);
-
-// A different printing may support different finishes; choose an allowed default.
-watch(selectedPrinting, () => {
-  const preferred = props.initialCard?.finish ?? (props.initialCard?.isFoil ? 'foil' : 'nonfoil');
-  draft.value.finish =
-    selectedPrinting.value?.id === props.initialCard?.scryfallId &&
-    finishes.value.includes(preferred)
-      ? preferred
-      : (finishes.value[0] ?? '');
-});
-
-const emit = defineEmits(['close']);
-
-const draftQuantity = computed(() =>
-  draft.value.copies.reduce(
-    (sum, copy) => sum + (Number.isInteger(copy.quantity) && copy.quantity > 0 ? copy.quantity : 0),
-    0,
-  ),
-);
-const canAddCard = computed(() => {
-  const printing = selectedPrinting.value;
-  const finish = draft.value.finish;
-
-  return (
-    !loadingPrintings.value &&
-    Boolean(printing?.finishes?.includes(finish)) &&
-    draft.value.copies.length > 0 &&
-    validAssignments(draft.value.binderQuantities, draftQuantity.value) &&
-    draft.value.copies.every(
-      (copy) =>
-        conditions.includes(copy.condition) &&
-        Number.isInteger(copy.quantity) &&
-        copy.quantity > 0 &&
-        (copy.purchasePrice === '' ||
-          (Number.isFinite(copy.purchasePrice) && copy.purchasePrice >= 0)),
-    )
-  );
-});
 
 // Validate again, then combine matching condition and purchase-price groups.
 function addCard() {
@@ -219,12 +171,23 @@ function addCard() {
       }
     }
   }
-  addCollectionEntries(collectionCards.value, entries);
+  emit('add-cards', entries);
 
   emit('close');
 }
 
+// A different printing may support different finishes; choose an allowed default.
+watch(selectedPrinting, () => {
+  const preferred = props.initialCard?.finish ?? (props.initialCard?.isFoil ? 'foil' : 'nonfoil');
+  draft.value.finish =
+    selectedPrinting.value?.id === props.initialCard?.scryfallId &&
+    finishes.value.includes(preferred)
+      ? preferred
+      : (finishes.value[0] ?? '');
+});
+
 onBeforeUnmount(clearPrintings);
+
 if (props.initialCard) loadPrintings(props.initialCard.name);
 </script>
 
@@ -365,7 +328,11 @@ if (props.initialCard) loadPrintings(props.initialCard.name);
           </div>
 
           <div class="mb-3">
-            <BinderPicker v-model="draft.binderQuantities" :owned-quantity="draftQuantity" />
+            <BinderPicker
+              :binders="binders"
+              v-model="draft.binderQuantities"
+              :owned-quantity="draftQuantity"
+            />
             <p v-if="Object.keys(draft.binderQuantities).length" class="form-text mb-0">
               Copies are assigned to groups in the order entered above.
             </p>

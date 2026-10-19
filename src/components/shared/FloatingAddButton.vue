@@ -1,5 +1,7 @@
 <script setup>
 // Shared floating action; Bootstrap supplies its button, shape, shadow, and focus styles.
+// Shared floating action; Bootstrap supplies its button, shape, shadow, and focus styles.
+
 defineProps({ label: { type: String, required: true } });
 const emit = defineEmits(['click']);
 </script>

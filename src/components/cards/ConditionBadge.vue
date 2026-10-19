@@ -1,7 +1,9 @@
 <script setup>
 // One palette keeps condition labels consistent across collection and trade views.
 import { computed } from 'vue';
+
 const props = defineProps({ condition: { type: String, required: true } });
+
 const colors = {
   'Near Mint': 'mint',
   'Lightly Played': 'light',
@@ -9,6 +11,7 @@ const colors = {
   'Heavily Played': 'heavy',
   Damaged: 'damaged',
 };
+
 const tone = computed(() => colors[props.condition] ?? 'unknown');
 </script>
 

@@ -8,7 +8,9 @@ defineProps({
   settings: { type: Boolean, default: false },
   binderName: { type: String, required: true },
 });
+
 const emit = defineEmits(['edit', 'delete']);
+
 const trigger = ref(null);
 
 // Bootstrap owns opening, positioning, dismissal, and keyboard navigation.
@@ -60,9 +62,9 @@ onBeforeUnmount(() => Dropdown.getInstance(trigger.value)?.dispose());
         aria-hidden="true"
         focusable="false"
       >
-        <circle cx="3" cy="8" r="1.5" />
+        <circle cx="8" cy="3" r="1.5" />
         <circle cx="8" cy="8" r="1.5" />
-        <circle cx="13" cy="8" r="1.5" />
+        <circle cx="8" cy="13" r="1.5" />
       </svg>
     </button>
     <ul class="dropdown-menu dropdown-menu-end">

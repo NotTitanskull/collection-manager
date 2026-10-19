@@ -1,5 +1,5 @@
 // Trade page structure. TradeView’s scoped styles add direction and comparison colors.
-@use "variables" as theme;
+@use './variables' as theme;
 
 .trade-page {
   .trade-workspace {
@@ -53,6 +53,7 @@
   // minmax(0, 1fr) lets each equal-width column shrink around long card text.
   .trade-columns {
     display: grid;
+    align-items: start;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1.5rem;
   }
@@ -88,14 +89,14 @@
   }
   .trade-card {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.75rem;
     padding: 1rem 0;
     border-bottom: 1px solid theme.$subtle-border;
   }
   // Preserve card proportions without stretching or cropping the artwork.
   .trade-card-image {
-    width: 3.5rem;
+    width: 5rem;
     aspect-ratio: 5 / 7;
     flex-shrink: 0;
     object-fit: contain;
@@ -105,16 +106,15 @@
     min-width: 0;
     flex: 1;
   }
-  .trade-card-details h4 {
+  .trade-card-details h3 {
     margin: 0;
     font-size: 0.9rem;
   }
-  .trade-card-details p,
-  .trade-card-details span {
-    display: block;
+  // Style paragraph text only; ConditionBadge owns its inline size and colors.
+  .trade-card-details p {
     margin: 0.25rem 0 0;
     color: theme.$text-muted;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
   }
   .trade-card-value {
     flex-shrink: 0;

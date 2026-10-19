@@ -1,8 +1,10 @@
 <script setup>
 // ref stores changing state; computed derives a value; watch reacts with an action.
+// The parent supplies a card and chooses between the preview and full-image view.
 import { computed, ref, watch } from 'vue';
 
 // The parent supplies a card and chooses between the preview and full-image view.
+
 const props = defineProps({
   card: { type: Object, required: true },
   full: Boolean,
@@ -52,7 +54,7 @@ watch(
   () => {
     fallback.value = false;
     unavailable.value = false;
-  },
+  }
 );
 
 // Let the parent restore keyboard focus after returning from the full-image view.

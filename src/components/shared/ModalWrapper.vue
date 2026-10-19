@@ -5,6 +5,7 @@ import { Modal } from 'bootstrap';
 
 defineProps({ large: { type: Boolean, default: false } });
 const emit = defineEmits(['close']);
+
 const modalElement = ref(null);
 let modal;
 let opener;

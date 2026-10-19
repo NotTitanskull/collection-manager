@@ -1,14 +1,13 @@
 <script setup>
-import ConditionBadge from './ConditionBadge.vue';
 // The overview owns navigation; the original editor still owns each entry's draft.
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import { finishLabels } from '../../data/cardOptions.js';
+import ConditionBadge from './ConditionBadge.vue';
 
-import ModalWrapper from '../ui/ModalWrapper.vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import ModalWrapper from '../shared/ModalWrapper.vue';
 import CardImagePreview from './CardImagePreview.vue';
 import ManageCardModal from './ManageCardModal.vue';
 import AddCardModal from './AddCardModal.vue';
-
-import { collectionCards } from '../../stores/collection.js';
 import {
   marketPrice,
   marketState,
@@ -16,8 +15,13 @@ import {
   refreshMarketPrice,
 } from '../../services/marketPrices.js';
 
-const props = defineProps({ card: { type: Object, required: true } });
-const emit = defineEmits(['close']);
+const props = defineProps({
+  collectionCards: { type: Array, required: true },
+  binders: { type: Array, required: true },
+  card: { type: Object, required: true },
+});
+
+const emit = defineEmits(['add-cards', 'update-card', 'delete-card', 'close']);
 
 // Keep the original name as the group identity, even when its preview changes.
 const name = props.card.name.trim().toLowerCase();
@@ -37,39 +41,38 @@ const addButton = ref(null);
 const editButtons = new Map();
 const opener = document.activeElement;
 
-// Derived values update when the shared collection or market quotes change.
-const entries = computed(() =>
-  collectionCards.value.filter((entry) => entry.name.trim().toLowerCase() === name),
-);
-
 // Older entries have isFoil; newer entries have an explicit finish value.
 const finish = (entry) => entry.finish ?? (entry.isFoil ? 'foil' : 'nonfoil');
+const finishLabel = (entry) => finishLabels[finish(entry)] ?? finish(entry);
 
-const finishLabel = (entry) =>
-  ({ nonfoil: 'Nonfoil', foil: 'Foil', etched: 'Etched foil' })[finish(entry)] ?? finish(entry);
+// Derived values update when the shared collection or market quotes change.
+const entries = computed(() =>
+  props.collectionCards.filter((entry) => entry.name.trim().toLowerCase() === name)
+);
 
 const copies = computed(() => entries.value.reduce((sum, entry) => sum + entry.quantity, 0));
 
 // Conditions are variants too; separate purchase-cost records retain their own Edit buttons.
+
 // Set removes duplicate combinations; JSON.stringify makes each combination a string key.
 const variants = computed(
   () =>
     new Set(
       entries.value.map((entry) =>
-        JSON.stringify([entry.scryfallId, finish(entry), entry.condition]),
-      ),
-    ).size,
+        JSON.stringify([entry.scryfallId, finish(entry), entry.condition])
+      )
+    ).size
 );
 
 const loading = computed(() =>
-  entries.value.some((entry) => marketState(entry).status === 'loading'),
+  entries.value.some((entry) => marketState(entry).status === 'loading')
 );
 
 // A missing price makes the total unknown rather than treating that card as free.
 const total = computed(() =>
   entries.value.some((entry) => marketPrice(entry) == null)
     ? null
-    : entries.value.reduce((sum, entry) => sum + marketPrice(entry) * entry.quantity, 0),
+    : entries.value.reduce((sum, entry) => sum + marketPrice(entry) * entry.quantity, 0)
 );
 
 const details = computed(() => printingDetails(selected.value));
@@ -82,15 +85,7 @@ const metadata = computed(() =>
     details.value.rarity,
   ]
     .filter(Boolean)
-    .join(', '),
-);
-
-// Fetch quotes when the printing IDs change, including when the overview first opens.
-// The price service handles request deduplication and its own cache.
-watch(
-  () => entries.value.map((entry) => entry.scryfallId).join('|'),
-  () => entries.value.forEach((entry) => refreshMarketPrice(entry)),
-  { immediate: true },
+    .join(', ')
 );
 
 /** Return after Save, Cancel, or removal in the original entry editor. */
@@ -138,18 +133,40 @@ async function previewPrinting(entry) {
   image.value?.focus();
 }
 
+// Fetch quotes when the printing IDs change, including when the overview first opens.
+
+// The price service handles request deduplication and its own cache.
+watch(
+  () => entries.value.map((entry) => entry.scryfallId).join('|'),
+  () => entries.value.forEach((entry) => refreshMarketPrice(entry)),
+  { immediate: true }
+);
+
 // Return to the original collection trigger after the modal has been removed.
 onBeforeUnmount(() =>
   nextTick(() => {
     if (opener?.isConnected) opener.focus();
-  }),
+  })
 );
 </script>
 
 <template>
   <!-- One dialog at a time: entry editor, Add Card, or the overview. -->
-  <ManageCardModal v-if="editing" :card="editing" @close="returnFromEdit" />
-  <AddCardModal v-else-if="adding" :initial-card="selected" @close="returnFromAdd" />
+  <ManageCardModal
+    :binders="binders"
+    @update-card="emit('update-card', $event)"
+    @delete-card="emit('delete-card', $event)"
+    v-if="editing"
+    :card="editing"
+    @close="returnFromEdit"
+  />
+  <AddCardModal
+    :binders="binders"
+    @add-cards="emit('add-cards', $event)"
+    v-else-if="adding"
+    :initial-card="selected"
+    @close="returnFromAdd"
+  />
   <ModalWrapper
     v-else
     class="card-details-modal"

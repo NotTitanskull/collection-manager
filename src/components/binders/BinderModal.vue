@@ -1,21 +1,21 @@
 <script setup>
 // Creates or edits a custom binder; deletion has a separate confirmation modal.
-import ModalWrapper from '../ui/ModalWrapper.vue';
+import ModalWrapper from '../shared/ModalWrapper.vue';
 import { computed, ref } from 'vue';
-import { binders } from '../../stores/binders.js';
 
 const props = defineProps({
+  binders: { type: Array, required: true },
   binder: {
     type: Object,
     default: null,
   },
 });
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'save-binder']);
+
 const name = ref('');
 const description = ref('');
 const color = ref('blue');
-
 const colors = [
   { value: 'blue', label: 'Blue' },
   { value: 'purple', label: 'Purple' },
@@ -26,11 +26,12 @@ const duplicateName = computed(() => {
   const value = name.value.trim().toLowerCase();
   return (
     value === 'favorites' ||
-    binders.value.some(
-      (binder) => binder.id !== props.binder?.id && binder.name.trim().toLowerCase() === value,
+    props.binders.some(
+      (binder) => binder.id !== props.binder?.id && binder.name.trim().toLowerCase() === value
     )
   );
 });
+
 const canSave = computed(() => name.value.trim().length > 0 && !duplicateName.value);
 
 // Use existing values for edit mode, or defaults for create mode.
@@ -50,18 +51,9 @@ function saveBinder() {
     color: color.value,
   };
 
-  if (props.binder) {
-    const binder = binders.value.find((entry) => entry.id === props.binder.id);
-
-    if (!binder) return;
-
-    Object.assign(binder, values);
-  } else {
-    binders.value.push({
-      id: crypto.randomUUID(),
-      ...values,
-    });
-  }
+  // A binder holds its details only. Card entries separately record this binder's ID.
+  // The page forwards this event to App.vue, which updates and persists the binder array.
+  emit('save-binder', { id: props.binder?.id ?? crypto.randomUUID(), ...values });
 
   emit('close');
 }

@@ -1,5 +1,7 @@
 <script setup>
 // Shared printing summary for card-related dialogs.
+// Shared printing summary for card-related dialogs.
+
 defineProps({ card: { type: Object, required: true } });
 </script>
 

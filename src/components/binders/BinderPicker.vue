@@ -1,19 +1,25 @@
 <script setup>
 // Editable draft quantities; changes are applied only when the owning form saves.
-import { binders } from '../../stores/binders.js';
-import { totalAssigned } from '../../utils/binderQuantities.js';
+import { totalAssigned } from '../../utils/binderAssignments.js';
 
-const props = defineProps({ ownedQuantity: { type: Number, required: true } });
+const props = defineProps({
+  binders: { type: Array, required: true },
+  ownedQuantity: { type: Number, required: true },
+});
+
 const assignments = defineModel({ type: Object, default: () => ({}) });
+
 function toggle(id, selected) {
   const next = { ...assignments.value };
   if (selected) next[id] = 1;
   else delete next[id];
   assignments.value = next;
 }
+
 function setQuantity(id, value) {
   assignments.value = { ...assignments.value, [id]: value === '' ? '' : Number(value) };
 }
+
 function maximumFor(id) {
   const others = { ...assignments.value };
   delete others[id];

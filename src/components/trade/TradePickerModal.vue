@@ -1,33 +1,39 @@
 <script setup>
-import ConditionBadge from '../cards/ConditionBadge.vue';
 // Selects owned entries for a trade draft; emits IDs without changing the collection.
-import ModalWrapper from '../ui/ModalWrapper.vue';
+import ConditionBadge from '../cards/ConditionBadge.vue';
+
+import ModalWrapper from '../shared/ModalWrapper.vue';
 import { computed, ref } from 'vue';
-import { collectionCards } from '../../stores/collection.js';
 
 const props = defineProps({
+  collectionCards: { type: Array, required: true },
   selectedIds: {
     type: Array,
     default: () => [],
   },
 });
+
 const emit = defineEmits(['add', 'close']);
+
 const search = ref('');
 const tradeOnly = ref(false);
 const checkedIds = ref([]);
+
 const availableCards = computed(() =>
-  collectionCards.value.filter(
-    (card) => card.quantity > 0 && !props.selectedIds.includes(card.entryId),
-  ),
+  props.collectionCards.filter(
+    (card) => card.quantity > 0 && !props.selectedIds.includes(card.entryId)
+  )
 );
+
 const matchingCards = computed(() => {
   const query = search.value.trim().toLowerCase();
   return availableCards.value.filter(
     (card) =>
       (!tradeOnly.value || card.trade) &&
-      `${card.name} ${card.printing}`.toLowerCase().includes(query),
+      `${card.name} ${card.printing}`.toLowerCase().includes(query)
   );
 });
+
 // Recheck availability and send selected entry IDs to the parent draft.
 function addSelected() {
   const ids = availableCards.value
@@ -78,7 +84,9 @@ function addSelected() {
                   {{ card.printing }} ·
                   {{ card.finish === 'etched' ? 'Etched foil' : card.isFoil ? 'Foil' : 'Nonfoil' }}
                 </small>
-                <small><ConditionBadge :condition="card.condition" /> · {{ card.quantity }} owned</small>
+                <small
+                  ><ConditionBadge :condition="card.condition" /> · {{ card.quantity }} owned</small
+                >
               </span>
               <input
                 v-model="checkedIds"
